@@ -8,7 +8,10 @@ import type {
   SchematicText,
 } from "circuit-json"
 import { any_circuit_element } from "circuit-json"
-import { convertAltiumSchDocToCircuitJson } from "../../lib"
+import {
+  convertAltiumSchDocToCircuitJson,
+  TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS,
+} from "../../lib"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
 import { renderImportedSchematicToSvg } from "../helpers/render-imported-schematic"
@@ -67,16 +70,62 @@ test("TI schematic coordinates fit and center on the Circuit JSON sheet", async 
   )
   expect(pmicComponent?.center.x).toBeCloseTo(-1.92318, 5)
   expect(pmicComponent?.center.y).toBeCloseTo(0.14246, 5)
-  expect(pmicComponent?.size.width).toBeCloseTo(2.70669, 5)
-  expect(pmicComponent?.size.height).toBeCloseTo(2.84915, 5)
+  expect(pmicComponent).toMatchObject({
+    pin_spacing: TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent.pinPitch,
+    size: { height: 2.2, width: 2.6 },
+  })
 
   const sclPort = circuitJson.find(
     (element): element is SchematicPort =>
       element.type === "schematic_port" &&
       element.schematic_port_id === "schematic_port_altium_798",
   )
-  expect(sclPort?.center.x).toBeCloseTo(-3.7039, 5)
-  expect(sclPort?.center.y).toBeCloseTo(0.14246, 5)
+  expect(sclPort).toMatchObject({
+    distance_from_component_edge:
+      TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent
+        .portDistanceFromEdge,
+    facing_direction: "left",
+    side_of_component: "left",
+  })
+  expect(sclPort?.center.x).toBeCloseTo(-3.62318, 5)
+  expect(sclPort?.center.y).toBeCloseTo(0.24246, 5)
+
+  const leftPorts = circuitJson
+    .filter(
+      (element): element is SchematicPort =>
+        element.type === "schematic_port" &&
+        element.schematic_component_id ===
+          pmicComponent?.schematic_component_id &&
+        element.side_of_component === "left",
+    )
+    .sort((left, right) => right.center.y - left.center.y)
+  expect(leftPorts).toHaveLength(10)
+  for (let index = 1; index < leftPorts.length; index++) {
+    expect(
+      (leftPorts[index - 1]?.center.y ?? 0) - (leftPorts[index]?.center.y ?? 0),
+    ).toBeCloseTo(
+      TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent.pinPitch,
+      8,
+    )
+  }
+
+  expect(
+    circuitJson.find(
+      (element) =>
+        element.type === "schematic_trace" &&
+        element.schematic_trace_id === "schematic_trace_altium_port_lead_798",
+    ),
+  ).toMatchObject({
+    edges: [
+      {
+        from_schematic_port_id: "schematic_port_altium_798",
+        to: { x: -3.703895565685869, y: 0.2424575217571494 },
+      },
+      {
+        to: { x: -3.703895565685869, y: 0.14245752175714976 },
+      },
+    ],
+  })
 
   const note = circuitJson.find(
     (element): element is SchematicText =>

@@ -24,6 +24,7 @@ import {
 } from "circuit-json"
 import { parseAndConvertSiUnit } from "format-si-unit"
 import { type SchSymbol, symbols } from "schematic-symbols"
+import { TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS } from "./schematic-unit-conventions"
 
 export interface SemanticSchematicOptions {
   includeHidden?: boolean
@@ -54,6 +55,12 @@ interface SymbolSelection {
   assignments: SymbolPortAssignment[]
   name: string
   symbol: SchSymbol
+}
+
+interface GenericBoxGeometry {
+  portArrangement?: SchematicComponent["port_arrangement"]
+  portLabels: Record<string, string>
+  size: SchematicComponent["size"]
 }
 
 interface SemanticNet {
@@ -233,18 +240,15 @@ function convertComponents(params: {
       ports: componentPorts,
     })
     const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
+    const genericBoxGeometry = symbolSelection
+      ? undefined
+      : applyGenericBoxPortGeometry({
+          center,
+          ports: componentPorts,
+        })
     const size = symbolSelection
       ? { ...symbolSelection.symbol.size }
-      : {
-          height: Math.max(
-            (bodyBounds.maxY - bodyBounds.minY) * options.scale,
-            0.4,
-          ),
-          width: Math.max(
-            (bodyBounds.maxX - bodyBounds.minX) * options.scale,
-            0.4,
-          ),
-        }
+      : (genericBoxGeometry?.size ?? { height: 0.4, width: 0.4 })
     if (symbolSelection) {
       applyNativeSymbolPortGeometry({
         center,
@@ -271,19 +275,42 @@ function convertComponents(params: {
       size,
       source_component_id: sourceComponentId,
       symbol_display_value: value,
+      ...(genericBoxGeometry
+        ? {
+            pin_spacing:
+              TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent.pinPitch,
+            port_labels: genericBoxGeometry.portLabels,
+            ...(genericBoxGeometry.portArrangement
+              ? { port_arrangement: genericBoxGeometry.portArrangement }
+              : {}),
+          }
+        : {}),
       ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
     }
     elements.push(schematicComponent)
 
     if (!symbolSelection && options.includeText !== false) {
+      const hasTopPins = componentPorts.some(
+        ({ schematicPort }) => schematicPort.side_of_component === "top",
+      )
+      const hasBottomPins = componentPorts.some(
+        ({ schematicPort }) => schematicPort.side_of_component === "bottom",
+      )
+      const { portDistanceFromEdge, textOffsetFromBody } =
+        TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent
+      const textX = center.x - size.width / 2
       elements.push(
         createComponentText({
           anchor: "bottom_left",
           component: schematicComponent,
           id: `schematic_component_designator_altium_${componentIndex}`,
           position: {
-            x: center.x - size.width / 2,
-            y: center.y + size.height / 2 + 0.13,
+            x: textX,
+            y:
+              center.y +
+              size.height / 2 +
+              textOffsetFromBody +
+              (hasTopPins ? portDistanceFromEdge : 0),
           },
           text: designator,
         }),
@@ -295,8 +322,12 @@ function convertComponents(params: {
             component: schematicComponent,
             id: `schematic_component_value_altium_${componentIndex}`,
             position: {
-              x: center.x - size.width / 2,
-              y: center.y - size.height / 2 - 0.13,
+              x: textX,
+              y:
+                center.y -
+                size.height / 2 -
+                textOffsetFromBody -
+                (hasBottomPins ? portDistanceFromEdge : 0),
             },
             text: value,
           }),
@@ -1442,6 +1473,238 @@ function applyNativeSymbolPortGeometry(params: {
       convertedPort.schematicPort.facing_direction = direction
       convertedPort.schematicPort.side_of_component = directionToSide(direction)
     }
+  }
+}
+
+/**
+ * Reflows generic Altium symbols into the same compact box geometry emitted by
+ * @tscircuit/core. Sheet scaling still positions the component and its
+ * electrical terminals; generated port-lead traces bridge these normalized
+ * ports back to the original Altium wire endpoints.
+ */
+function applyGenericBoxPortGeometry(params: {
+  center: AltiumPoint
+  ports: ConvertedPort[]
+}): GenericBoxGeometry {
+  const { center, ports } = params
+  const { pinLabelCharacterWidth, pinLabelHorizontalPadding, pinPitch } =
+    TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent
+  const portDistanceFromEdge =
+    TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS.genericComponent.portDistanceFromEdge
+  const portsBySide: Record<
+    NonNullable<SchematicPort["side_of_component"]>,
+    ConvertedPort[]
+  > = {
+    bottom: [],
+    left: [],
+    right: [],
+    top: [],
+  }
+
+  for (const port of ports) {
+    const side =
+      port.schematicPort.side_of_component ??
+      directionToSide(port.schematicPort.facing_direction ?? "right")
+    portsBySide[side].push(port)
+  }
+  portsBySide.left.sort(comparePortsTopToBottom)
+  portsBySide.right.sort(comparePortsTopToBottom)
+  portsBySide.top.sort(comparePortsLeftToRight)
+  portsBySide.bottom.sort(comparePortsLeftToRight)
+
+  const horizontalPinCount = Math.max(
+    portsBySide.top.length,
+    portsBySide.bottom.length,
+  )
+  const verticalPinCount = Math.max(
+    portsBySide.left.length,
+    portsBySide.right.length,
+  )
+  const longestPinLabelLength = Math.max(
+    0,
+    ...ports.map(
+      ({ schematicPort }) => schematicPort.display_pin_label?.length ?? 0,
+    ),
+  )
+  const labelWidth = longestPinLabelLength * pinLabelCharacterWidth
+  const minimumWidthForPins = Math.max(horizontalPinCount + 1, 2) * pinPitch
+  const size = {
+    height: Math.max(verticalPinCount + 1, 2) * pinPitch,
+    width: Math.max(
+      minimumWidthForPins,
+      labelWidth > 0 ? labelWidth + pinLabelHorizontalPadding : 0,
+    ),
+  }
+
+  placeVerticalBoxPorts({
+    bodyWidth: size.width,
+    center,
+    pinPitch,
+    portDistanceFromEdge,
+    ports: portsBySide.left,
+    side: "left",
+  })
+  placeVerticalBoxPorts({
+    bodyWidth: size.width,
+    center,
+    pinPitch,
+    portDistanceFromEdge,
+    ports: portsBySide.right,
+    side: "right",
+  })
+  placeHorizontalBoxPorts({
+    bodyHeight: size.height,
+    center,
+    pinPitch,
+    portDistanceFromEdge,
+    ports: portsBySide.top,
+    side: "top",
+  })
+  placeHorizontalBoxPorts({
+    bodyHeight: size.height,
+    center,
+    pinPitch,
+    portDistanceFromEdge,
+    ports: portsBySide.bottom,
+    side: "bottom",
+  })
+
+  const portLabels = Object.fromEntries(
+    ports.flatMap(({ schematicPort }) =>
+      schematicPort.pin_number === undefined
+        ? []
+        : [
+            [
+              String(schematicPort.pin_number),
+              schematicPort.display_pin_label ??
+                String(schematicPort.pin_number),
+            ],
+          ],
+    ),
+  )
+
+  return {
+    portArrangement: createGenericBoxPortArrangement(portsBySide),
+    portLabels,
+    size,
+  }
+}
+
+function comparePortsTopToBottom(
+  left: ConvertedPort,
+  right: ConvertedPort,
+): number {
+  return (
+    right.schematicPort.center.y - left.schematicPort.center.y ||
+    (left.schematicPort.true_ccw_index ?? 0) -
+      (right.schematicPort.true_ccw_index ?? 0)
+  )
+}
+
+function comparePortsLeftToRight(
+  left: ConvertedPort,
+  right: ConvertedPort,
+): number {
+  return (
+    left.schematicPort.center.x - right.schematicPort.center.x ||
+    (left.schematicPort.true_ccw_index ?? 0) -
+      (right.schematicPort.true_ccw_index ?? 0)
+  )
+}
+
+function placeVerticalBoxPorts(params: {
+  bodyWidth: number
+  center: AltiumPoint
+  pinPitch: number
+  portDistanceFromEdge: number
+  ports: ConvertedPort[]
+  side: "left" | "right"
+}): void {
+  const { bodyWidth, center, pinPitch, portDistanceFromEdge, ports, side } =
+    params
+  const firstY = center.y + ((ports.length - 1) * pinPitch) / 2
+  const xDirection = side === "left" ? -1 : 1
+  const x = center.x + xDirection * (bodyWidth / 2 + portDistanceFromEdge)
+
+  for (const [index, port] of ports.entries()) {
+    port.schematicPort.center = { x, y: firstY - index * pinPitch }
+    port.schematicPort.distance_from_component_edge = portDistanceFromEdge
+    port.schematicPort.facing_direction = side
+    port.schematicPort.side_of_component = side
+  }
+}
+
+function placeHorizontalBoxPorts(params: {
+  bodyHeight: number
+  center: AltiumPoint
+  pinPitch: number
+  portDistanceFromEdge: number
+  ports: ConvertedPort[]
+  side: "bottom" | "top"
+}): void {
+  const { bodyHeight, center, pinPitch, portDistanceFromEdge, ports, side } =
+    params
+  const firstX = center.x - ((ports.length - 1) * pinPitch) / 2
+  const yDirection = side === "bottom" ? -1 : 1
+  const y = center.y + yDirection * (bodyHeight / 2 + portDistanceFromEdge)
+
+  for (const [index, port] of ports.entries()) {
+    port.schematicPort.center = { x: firstX + index * pinPitch, y }
+    port.schematicPort.distance_from_component_edge = portDistanceFromEdge
+    port.schematicPort.facing_direction = side === "top" ? "up" : "down"
+    port.schematicPort.side_of_component = side
+  }
+}
+
+function createGenericBoxPortArrangement(
+  portsBySide: Record<
+    NonNullable<SchematicPort["side_of_component"]>,
+    ConvertedPort[]
+  >,
+): SchematicComponent["port_arrangement"] | undefined {
+  if (
+    Object.values(portsBySide)
+      .flat()
+      .some(({ schematicPort }) => schematicPort.pin_number === undefined)
+  ) {
+    return undefined
+  }
+
+  const pinNumbers = (ports: ConvertedPort[]): number[] =>
+    ports.map(({ schematicPort }) => schematicPort.pin_number as number)
+  return {
+    ...(portsBySide.left.length > 0
+      ? {
+          left_side: {
+            direction: "top-to-bottom" as const,
+            pins: pinNumbers(portsBySide.left),
+          },
+        }
+      : {}),
+    ...(portsBySide.right.length > 0
+      ? {
+          right_side: {
+            direction: "top-to-bottom" as const,
+            pins: pinNumbers(portsBySide.right),
+          },
+        }
+      : {}),
+    ...(portsBySide.top.length > 0
+      ? {
+          top_side: {
+            direction: "left-to-right" as const,
+            pins: pinNumbers(portsBySide.top),
+          },
+        }
+      : {}),
+    ...(portsBySide.bottom.length > 0
+      ? {
+          bottom_side: {
+            direction: "left-to-right" as const,
+            pins: pinNumbers(portsBySide.bottom),
+          },
+        }
+      : {}),
   }
 }
 

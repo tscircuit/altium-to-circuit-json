@@ -72,7 +72,8 @@ test("TI sheet 17 converts components, ports, nets, and text idiomatically", asy
   expect(pmicComponent).toMatchObject({
     center: { x: 87.5, y: 77 },
     is_box_with_pins: true,
-    size: { height: 20, width: 19 },
+    pin_spacing: 0.2,
+    size: { height: 2.2, width: 2.6 },
     symbol_display_value: "PTPS6521401VAFR",
   })
   expect(
@@ -90,8 +91,9 @@ test("TI sheet 17 converts components, ports, nets, and text idiomatically", asy
       element.schematic_port_id === "schematic_port_altium_798",
   )
   expect(sclPort).toMatchObject({
-    center: { x: 75, y: 77 },
+    center: { x: 85.8, y: 77.10000000000001 },
     display_pin_label: "SCL",
+    distance_from_component_edge: 0.4,
     facing_direction: "left",
     is_connected: true,
     pin_number: 14,

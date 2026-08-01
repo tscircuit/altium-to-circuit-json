@@ -17,14 +17,15 @@ import type {
   SchematicTrace,
 } from "circuit-json"
 import { convertSemanticSchematic } from "./schematic/convert-semantic-schematic"
+import { TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS } from "./schematic/schematic-unit-conventions"
 
 const SCHEMATIC_SHEET_ID = "schematic_sheet_altium"
 // circuit-to-svg renders schematic_sheet as a centered A4 page. Keep imported
 // coordinates inside the same 5 mm inset used by that renderer.
-const SCHEMATIC_UNIT_TO_MILLIMETERS = 10.16 / 1.1
-const SCHEMATIC_SHEET_INSET = 5 / SCHEMATIC_UNIT_TO_MILLIMETERS
-const SCHEMATIC_SHEET_WIDTH = 297 / SCHEMATIC_UNIT_TO_MILLIMETERS
-const SCHEMATIC_SHEET_HEIGHT = 210 / SCHEMATIC_UNIT_TO_MILLIMETERS
+const { millimetersPerUnit, sheet } = TSCIRCUIT_SCHEMATIC_UNIT_CONVENTIONS
+const SCHEMATIC_SHEET_INSET = sheet.insetMillimeters / millimetersPerUnit
+const SCHEMATIC_SHEET_WIDTH = sheet.widthMillimeters / millimetersPerUnit
+const SCHEMATIC_SHEET_HEIGHT = sheet.heightMillimeters / millimetersPerUnit
 const SCHEMATIC_SHEET_INNER_WIDTH =
   SCHEMATIC_SHEET_WIDTH - SCHEMATIC_SHEET_INSET * 2
 const SCHEMATIC_SHEET_INNER_HEIGHT =
