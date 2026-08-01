@@ -33,6 +33,28 @@ test(
       ),
     ).toBe(true)
     expect(findDetachedSymbolPortIds(circuitJson)).toEqual([])
+    expect(
+      circuitJson
+        .filter(
+          (element) =>
+            element.type === "schematic_net_label" && element.text === "GND",
+        )
+        .map((element) =>
+          element.type === "schematic_net_label"
+            ? element.symbol_name
+            : undefined,
+        ),
+    ).toEqual([
+      "digital_ground_up",
+      "digital_ground_right",
+      "digital_ground_right",
+      "digital_ground_left",
+      "digital_ground_left",
+      "digital_ground_up",
+      "digital_ground_down",
+      "digital_ground_down",
+      "digital_ground_up",
+    ])
 
     const altiumSvg = serializeAltiumSheetToSvg(document, {
       height: 600,
