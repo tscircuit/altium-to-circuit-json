@@ -539,7 +539,7 @@ function convertPad(
           y,
           width,
           height,
-          rotation: record.rotation,
+          ccwRotationDegrees: record.rotation,
         }),
         hole_offset_x: 0,
         hole_offset_y: 0,
@@ -602,7 +602,7 @@ function convertPad(
         y,
         width,
         height,
-        rotation: record.rotation,
+        ccwRotationDegrees: record.rotation,
       }),
     }
   }
@@ -807,8 +807,8 @@ function getMeasurement(record: AltiumRecord, key: string): number | undefined {
   return parseAltiumMeasurementToMils(record.getCaseInsensitive(key))
 }
 
-function milsToMillimeters(value: number): number {
-  return value * MILS_TO_MILLIMETERS
+function milsToMillimeters(mils: number): number {
+  return mils * MILS_TO_MILLIMETERS
 }
 
 function toMillimeterPoint(point: AltiumPoint): { x: number; y: number } {
@@ -855,13 +855,13 @@ function createOctagonPoints({
   y,
   width,
   height,
-  rotation,
+  ccwRotationDegrees,
 }: {
   x: number
   y: number
   width: number
   height: number
-  rotation: number
+  ccwRotationDegrees: number
 }): Array<{ x: number; y: number }> {
   const halfWidth = width / 2
   const halfHeight = height / 2
@@ -876,7 +876,7 @@ function createOctagonPoints({
     { x: -halfWidth, y: halfHeight - chamfer },
     { x: -halfWidth, y: -halfHeight + chamfer },
   ]
-  const transform = compose(translate(x, y), rotateDEG(rotation))
+  const transform = compose(translate(x, y), rotateDEG(ccwRotationDegrees))
   return points.map((point) => ({
     ...applyToPoint(transform, point),
   }))

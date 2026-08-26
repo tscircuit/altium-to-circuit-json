@@ -143,8 +143,8 @@ function getAltiumSheetDimensions(
   }
 }
 
-function getPositiveNumber(value: unknown, fallback: number): number {
-  const parsed = Number(value)
+function getPositiveNumber(rawNumber: unknown, fallback: number): number {
+  const parsed = Number(rawNumber)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
@@ -505,7 +505,7 @@ function convertSchematicRecord(
         fontSize,
         color: textColor,
         scale,
-        rotation: 0,
+        ccwRotationDegrees: 0,
         anchor: `top_${horizontalAnchor}` as SchematicText["anchor"],
       }),
     )
@@ -600,7 +600,7 @@ function convertPin({
     pinConglomerate === undefined || (pinConglomerate & 0x08) !== 0
   const showDesignator =
     pinConglomerate === undefined || (pinConglomerate & 0x10) !== 0
-  const rotation = orientation === 1 || orientation === 3 ? 90 : 0
+  const ccwRotationDegrees = orientation === 1 || orientation === 3 ? 90 : 0
   const directionMatchesText = orientation === 0 || orientation === 1
   const nameAnchor = directionMatchesText ? "right" : "left"
   const designatorAnchor = directionMatchesText ? "left" : "right"
@@ -618,7 +618,7 @@ function convertPin({
         fontSize: 6,
         color,
         scale: context.scale,
-        rotation,
+        ccwRotationDegrees,
         anchor: nameAnchor,
       }),
     )
@@ -635,7 +635,7 @@ function convertPin({
         fontSize: 6,
         color,
         scale: context.scale,
-        rotation,
+        ccwRotationDegrees,
         anchor: designatorAnchor,
       }),
     )
@@ -712,8 +712,8 @@ function convertPowerPort({
         type: "schematic_path",
         schematic_path_id: `schematic_power_port_altium_${index}`,
         schematic_sheet_id: SCHEMATIC_SHEET_ID,
-        points: [point(4, -7), point(4, 7), point(12)].map((value) =>
-          scalePoint(value, context.scale),
+        points: [point(4, -7), point(4, 7), point(12)].map((pathPoint) =>
+          scalePoint(pathPoint, context.scale),
         ),
         stroke_width: 0.1,
         stroke_color: color,
@@ -792,8 +792,8 @@ function convertPowerPort({
       type: "schematic_path",
       schematic_path_id: `schematic_power_port_altium_${index}`,
       schematic_sheet_id: SCHEMATIC_SHEET_ID,
-      points: [location, point(10, -5), point(10, 5)].map((value) =>
-        scalePoint(value, context.scale),
+      points: [location, point(10, -5), point(10, 5)].map((pathPoint) =>
+        scalePoint(pathPoint, context.scale),
       ),
       stroke_width: 0.1,
       stroke_color: color,
@@ -825,7 +825,7 @@ function convertPowerPort({
         fontSize: getFontSize(record, context),
         color,
         scale: context.scale,
-        rotation: 0,
+        ccwRotationDegrees: 0,
         anchor,
       }),
     )
@@ -908,7 +908,7 @@ function convertPort({
         fontSize: getFontSize(record, context),
         color: altiumColorToCss(record.getCaseInsensitive("TEXTCOLOR"), color),
         scale: context.scale,
-        rotation: 0,
+        ccwRotationDegrees: 0,
         anchor: "center",
       }),
     )
@@ -992,7 +992,7 @@ function createText({
     fontSize: getFontSize(record, context),
     color,
     scale: context.scale,
-    rotation: positioning.rotation,
+    ccwRotationDegrees: positioning.ccwRotationDegrees,
     anchor: anchorOverride ?? positioning.anchor,
   })
 }
@@ -1004,7 +1004,7 @@ function createDirectText({
   fontSize,
   color,
   scale,
-  rotation,
+  ccwRotationDegrees,
   anchor,
 }: {
   id: string
@@ -1013,7 +1013,7 @@ function createDirectText({
   fontSize: number
   color: string
   scale: number
-  rotation: number
+  ccwRotationDegrees: number
   anchor: SchematicText["anchor"]
 }): SchematicText {
   return {
@@ -1023,7 +1023,7 @@ function createDirectText({
     text,
     font_size: Math.max(fontSize * scale, 0.2),
     position: scalePoint(location, scale),
-    rotation,
+    rotation: ccwRotationDegrees,
     anchor,
     color,
   }
@@ -1053,7 +1053,7 @@ function getFontFamily(
 
 function getTextPositioning(record: AltiumRecord): {
   anchor: SchematicText["anchor"]
-  rotation: number
+  ccwRotationDegrees: number
 } {
   const justification = Math.min(
     Math.max(Math.round(record.getNumber("JUSTIFICATION") ?? 0), 0),
@@ -1072,7 +1072,7 @@ function getTextPositioning(record: AltiumRecord): {
       : (`${vertical}_${horizontal}` as SchematicText["anchor"])
   return {
     anchor,
-    rotation: orientation === 1 || orientation === 3 ? 90 : 0,
+    ccwRotationDegrees: orientation === 1 || orientation === 3 ? 90 : 0,
   }
 }
 

@@ -192,8 +192,8 @@ function createRunframeHtml(
   defaultActiveTab: InputKind,
   projectName: string,
 ) {
-  const encode = (value: unknown) =>
-    JSON.stringify(value)
+  const encode = (serializableValue: unknown) =>
+    JSON.stringify(serializableValue)
       .replace(/</g, "\\u003c")
       .replace(/>/g, "\\u003e")
       .replace(/&/g, "\\u0026")
@@ -224,14 +224,14 @@ function baseName(name: string | null) {
   return name?.replace(/\.(pcbdoc|schdoc|zip)$/i, "") ?? "board"
 }
 
-function download(data: unknown, name: string) {
-  const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], {
+function download(circuitJson: unknown, fileName: string) {
+  const blob = new Blob([`${JSON.stringify(circuitJson, null, 2)}\n`], {
     type: "application/json",
   })
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.href = url
-  link.download = name
+  link.download = fileName
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -267,25 +267,29 @@ function namespaceElements(
 ): AnyCircuitElement[] {
   const ids = new Set<string>()
   for (const element of elements) {
-    for (const [key, value] of Object.entries(element)) {
+    for (const [key, propertyValue] of Object.entries(element)) {
       if (key.endsWith("_id") || key.endsWith("_ids")) {
-        if (typeof value === "string") ids.add(value)
-        if (Array.isArray(value)) {
-          for (const item of value) if (typeof item === "string") ids.add(item)
+        if (typeof propertyValue === "string") ids.add(propertyValue)
+        if (Array.isArray(propertyValue)) {
+          for (const item of propertyValue)
+            if (typeof item === "string") ids.add(item)
         }
       }
     }
   }
-  const remap = (value: unknown): unknown => {
-    if (typeof value === "string" && ids.has(value))
-      return `${namespace}_${value}`
-    if (Array.isArray(value)) return value.map(remap)
-    if (value && typeof value === "object") {
+  const remap = (nestedValue: unknown): unknown => {
+    if (typeof nestedValue === "string" && ids.has(nestedValue))
+      return `${namespace}_${nestedValue}`
+    if (Array.isArray(nestedValue)) return nestedValue.map(remap)
+    if (nestedValue && typeof nestedValue === "object") {
       return Object.fromEntries(
-        Object.entries(value).map(([key, nested]) => [key, remap(nested)]),
+        Object.entries(nestedValue).map(([key, propertyValue]) => [
+          key,
+          remap(propertyValue),
+        ]),
       )
     }
-    return value
+    return nestedValue
   }
   return elements.map((element) => remap(element) as AnyCircuitElement)
 }

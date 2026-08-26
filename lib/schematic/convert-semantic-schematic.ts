@@ -222,7 +222,7 @@ function convertComponents(params: {
     // the named `Value` parameter, while `Comment` may contain a manufacturer
     // part number (or another library-specific description). Prefer the
     // explicit value field and retain the older fallbacks for simpler files.
-    const value =
+    const componentValue =
       findOwnedText(ownedRecords, "41", "Value")?.trim() ||
       findOwnedText(ownedRecords, "41", "Comment")?.trim() ||
       componentRecord.getDecoded("COMMENT")?.trim() ||
@@ -253,7 +253,7 @@ function convertComponents(params: {
           manufacturerPartNumber,
           pinCount: pins.length,
           sourceComponentId,
-          value,
+          componentValue,
         }),
       )
     }
@@ -316,7 +316,7 @@ function convertComponents(params: {
       schematic_sheet_id: options.schematicSheetId,
       size,
       source_component_id: sourceComponentId,
-      symbol_display_value: value,
+      symbol_display_value: componentValue,
       ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
     }
     elements.push(schematicComponent)
@@ -334,7 +334,7 @@ function convertComponents(params: {
           text: designator,
         }),
       )
-      if (value) {
+      if (componentValue) {
         elements.push(
           createComponentText({
             anchor: "top_left",
@@ -344,7 +344,7 @@ function convertComponents(params: {
               x: center.x - size.width / 2,
               y: center.y - size.height / 2 - 0.13,
             },
-            text: value,
+            text: componentValue,
           }),
         )
       }
@@ -442,7 +442,7 @@ function createSourceComponent(params: {
   manufacturerPartNumber?: string
   pinCount: number
   sourceComponentId: string
-  value: string
+  componentValue: string
 }): AnyCircuitElement {
   const {
     designator,
@@ -450,14 +450,14 @@ function createSourceComponent(params: {
     manufacturerPartNumber,
     pinCount,
     sourceComponentId,
-    value,
+    componentValue,
   } = params
   const classification = classifyComponent({ designator, libraryReference })
-  const primaryValue = getPrimaryComponentValue(value)
+  const primaryValue = getPrimaryComponentValue(componentValue)
   const common = {
     type: "source_component" as const,
     display_name: designator,
-    display_value: value || undefined,
+    display_value: componentValue || undefined,
     manufacturer_part_number: manufacturerPartNumber,
     name: designator,
     source_component_id: sourceComponentId,
@@ -466,7 +466,7 @@ function createSourceComponent(params: {
   if (classification === "resistor") {
     const parsed = source_simple_resistor.safeParse({
       ...common,
-      display_resistance: value || undefined,
+      display_resistance: componentValue || undefined,
       ftype: "simple_resistor",
       resistance: primaryValue || 0,
     })
@@ -475,7 +475,7 @@ function createSourceComponent(params: {
   if (classification === "capacitor") {
     const parsed = source_simple_capacitor.safeParse({
       ...common,
-      display_capacitance: value || undefined,
+      display_capacitance: componentValue || undefined,
       ftype: "simple_capacitor",
       capacitance: primaryValue || 0,
     })
@@ -484,14 +484,14 @@ function createSourceComponent(params: {
   if (classification === "inductor") {
     const parsed = source_simple_inductor.safeParse({
       ...common,
-      display_inductance: value || undefined,
+      display_inductance: componentValue || undefined,
       ftype: "simple_inductor",
       inductance: primaryValue || 0,
     })
     if (parsed.success) return parsed.data
   }
   if (classification === "crystal" && (pinCount === 2 || pinCount === 4)) {
-    const frequency = parseAndConvertSiUnit(value, "Hz").value
+    const frequency = parseAndConvertSiUnit(componentValue, "Hz").value
     if (typeof frequency === "number" && Number.isFinite(frequency)) {
       const parsed = source_simple_crystal.safeParse({
         ...common,
@@ -779,16 +779,18 @@ function splitSegmentAtPoints(
 class PointDisjointSet {
   private readonly parent = new Map<string, string>()
 
-  add(value: string): void {
-    if (!this.parent.has(value)) this.parent.set(value, value)
+  add(pointKeyValue: string): void {
+    if (!this.parent.has(pointKeyValue)) {
+      this.parent.set(pointKeyValue, pointKeyValue)
+    }
   }
 
-  find(value: string): string {
-    this.add(value)
-    const parent = this.parent.get(value) ?? value
-    if (parent === value) return value
+  find(pointKeyValue: string): string {
+    this.add(pointKeyValue)
+    const parent = this.parent.get(pointKeyValue) ?? pointKeyValue
+    if (parent === pointKeyValue) return pointKeyValue
     const root = this.find(parent)
-    this.parent.set(value, root)
+    this.parent.set(pointKeyValue, root)
     return root
   }
 
@@ -1659,8 +1661,8 @@ function getSymbolDirectionScore(selection: SymbolSelection): number {
     : Number.POSITIVE_INFINITY
 }
 
-function normalizeFunctionalPortLabel(value: string): string | undefined {
-  const normalized = value.toLowerCase().replace(/[^a-z]/gu, "")
+function normalizeFunctionalPortLabel(portLabel: string): string | undefined {
+  const normalized = portLabel.toLowerCase().replace(/[^a-z]/gu, "")
   if (normalized === "g" || normalized === "gate") return "gate"
   if (normalized === "d" || normalized === "drain") return "drain"
   if (normalized === "s" || normalized === "source") return "source"
@@ -1859,7 +1861,7 @@ function getPortIdAtElectricalPoint(
     : undefined
 }
 
-function parsePinNumber(value: string): number | undefined {
-  const parsed = Number(value)
+function parsePinNumber(pinNumber: string): number | undefined {
+  const parsed = Number(pinNumber)
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined
 }
