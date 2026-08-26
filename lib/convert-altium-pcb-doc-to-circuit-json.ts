@@ -31,6 +31,12 @@ import type {
   PcbTrace,
   PcbVia,
 } from "circuit-json"
+import {
+  applyToPoint,
+  compose,
+  rotateDEG,
+  translate,
+} from "transformation-matrix"
 
 const MILS_TO_MILLIMETERS = 0.0254
 const BOARD_ID = "pcb_board_altium"
@@ -870,9 +876,8 @@ function createOctagonPoints({
     { x: -halfWidth, y: halfHeight - chamfer },
     { x: -halfWidth, y: -halfHeight + chamfer },
   ]
-  const radians = (rotation * Math.PI) / 180
+  const transform = compose(translate(x, y), rotateDEG(rotation))
   return points.map((point) => ({
-    x: x + point.x * Math.cos(radians) - point.y * Math.sin(radians),
-    y: y + point.x * Math.sin(radians) + point.y * Math.cos(radians),
+    ...applyToPoint(transform, point),
   }))
 }

@@ -46,7 +46,8 @@
     "altiumts": "^0.0.26",
     "circuit-json": "^0.0.475",
     "format-si-unit": "^0.0.11",
-    "schematic-symbols": "^0.0.238"
+    "schematic-symbols": "^0.0.238",
+    "transformation-matrix": "^3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",

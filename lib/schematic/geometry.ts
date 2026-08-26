@@ -1,4 +1,8 @@
 import type { AltiumPoint, AltiumRecord } from "altiumts"
+import {
+  applyToPoint,
+  scale as createScaleTransform,
+} from "transformation-matrix"
 
 export interface Bounds {
   maxX: number
@@ -115,7 +119,7 @@ function getCoordinate(record: AltiumRecord, key: string): number | undefined {
 }
 
 export function scalePoint(point: AltiumPoint, scale: number): AltiumPoint {
-  return { x: point.x * scale, y: point.y * scale }
+  return applyToPoint(createScaleTransform(scale, scale), point)
 }
 
 export function pointKey(point: AltiumPoint): string {

@@ -17,6 +17,10 @@ import type {
   SchematicText,
   SchematicTrace,
 } from "circuit-json"
+import {
+  applyToPoint,
+  translate as createTranslateTransform,
+} from "transformation-matrix"
 import { convertSemanticSchematic } from "./schematic/convert-semantic-schematic"
 
 const SCHEMATIC_SHEET_ID = "schematic_sheet_altium"
@@ -152,7 +156,7 @@ function getPageFitScale(sheetDimensions: SheetDimensions): number {
 }
 
 function translatePoint(point: Point, offset: Point): Point {
-  return { x: point.x + offset.x, y: point.y + offset.y }
+  return applyToPoint(createTranslateTransform(offset.x, offset.y), point)
 }
 
 function translateSchematicElement(
