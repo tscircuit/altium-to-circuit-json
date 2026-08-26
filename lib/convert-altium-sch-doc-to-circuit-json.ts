@@ -667,10 +667,6 @@ function convertPowerPort({
     { x: 0, y: -1 },
   ][orientation] ?? { x: 1, y: 0 }
   const perpendicular = { x: -direction.y, y: direction.x }
-  const point = (along: number, across = 0): AltiumPoint => ({
-    x: location.x + direction.x * along + perpendicular.x * across,
-    y: location.y + direction.y * along + perpendicular.y * across,
-  })
   const style = Math.round(Number(record.getCaseInsensitive("STYLE") ?? 2))
   const elements: AnyCircuitElement[] = []
   let labelDistance: number
@@ -680,7 +676,12 @@ function convertPowerPort({
       createLine({
         index,
         start: location,
-        end: point(8),
+        end: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 8,
+        }),
         color,
         strokeWidth: 0.1,
         scale: context.scale,
@@ -688,8 +689,20 @@ function convertPowerPort({
       }),
       createLine({
         index,
-        start: point(8, -5),
-        end: point(8, 5),
+        start: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 8,
+          across: -5,
+        }),
+        end: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 8,
+          across: 5,
+        }),
         color,
         strokeWidth: 0.1,
         scale: context.scale,
@@ -702,7 +715,12 @@ function convertPowerPort({
       createLine({
         index,
         start: location,
-        end: point(4),
+        end: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 4,
+        }),
         color,
         strokeWidth: 0.1,
         scale: context.scale,
@@ -712,9 +730,23 @@ function convertPowerPort({
         type: "schematic_path",
         schematic_path_id: `schematic_power_port_altium_${index}`,
         schematic_sheet_id: SCHEMATIC_SHEET_ID,
-        points: [point(4, -7), point(4, 7), point(12)].map((pathPoint) =>
-          scalePoint(pathPoint, context.scale),
-        ),
+        points: [
+          getPowerPortPoint({
+            location,
+            direction,
+            perpendicular,
+            along: 4,
+            across: -7,
+          }),
+          getPowerPortPoint({
+            location,
+            direction,
+            perpendicular,
+            along: 4,
+            across: 7,
+          }),
+          getPowerPortPoint({ location, direction, perpendicular, along: 12 }),
+        ].map((pathPoint) => scalePoint(pathPoint, context.scale)),
         stroke_width: 0.1,
         stroke_color: color,
         is_filled: false,
@@ -727,7 +759,12 @@ function convertPowerPort({
       createLine({
         index,
         start: location,
-        end: point(4),
+        end: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 4,
+        }),
         color,
         strokeWidth: 0.1,
         scale: context.scale,
@@ -740,8 +777,20 @@ function convertPowerPort({
       ].map(({ along, halfWidth }, lineIndex) =>
         createLine({
           index,
-          start: point(along, -halfWidth),
-          end: point(along, halfWidth),
+          start: getPowerPortPoint({
+            location,
+            direction,
+            perpendicular,
+            along,
+            across: -halfWidth,
+          }),
+          end: getPowerPortPoint({
+            location,
+            direction,
+            perpendicular,
+            along,
+            across: halfWidth,
+          }),
           color,
           strokeWidth: 0.1,
           scale: context.scale,
@@ -755,7 +804,12 @@ function convertPowerPort({
       createLine({
         index,
         start: location,
-        end: point(4),
+        end: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 4,
+        }),
         color,
         strokeWidth: 0.1,
         scale: context.scale,
@@ -763,8 +817,20 @@ function convertPowerPort({
       }),
       createLine({
         index,
-        start: point(4, -7),
-        end: point(4, 7),
+        start: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 4,
+          across: -7,
+        }),
+        end: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 4,
+          across: 7,
+        }),
         color,
         strokeWidth: 0.1,
         scale: context.scale,
@@ -777,8 +843,20 @@ function convertPowerPort({
       ].map(({ from, to }, lineIndex) =>
         createLine({
           index,
-          start: point(4, from),
-          end: point(9, to),
+          start: getPowerPortPoint({
+            location,
+            direction,
+            perpendicular,
+            along: 4,
+            across: from,
+          }),
+          end: getPowerPortPoint({
+            location,
+            direction,
+            perpendicular,
+            along: 9,
+            across: to,
+          }),
           color,
           strokeWidth: 0.1,
           scale: context.scale,
@@ -792,9 +870,23 @@ function convertPowerPort({
       type: "schematic_path",
       schematic_path_id: `schematic_power_port_altium_${index}`,
       schematic_sheet_id: SCHEMATIC_SHEET_ID,
-      points: [location, point(10, -5), point(10, 5)].map((pathPoint) =>
-        scalePoint(pathPoint, context.scale),
-      ),
+      points: [
+        location,
+        getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 10,
+          across: -5,
+        }),
+        getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: 10,
+          across: 5,
+        }),
+      ].map((pathPoint) => scalePoint(pathPoint, context.scale)),
       stroke_width: 0.1,
       stroke_color: color,
       fill_color: color,
@@ -821,7 +913,12 @@ function convertPowerPort({
       createDirectText({
         id: `schematic_power_port_text_altium_${index}`,
         text,
-        location: point(labelDistance),
+        location: getPowerPortPoint({
+          location,
+          direction,
+          perpendicular,
+          along: labelDistance,
+        }),
         fontSize: getFontSize(record, context),
         color,
         scale: context.scale,
@@ -831,6 +928,25 @@ function convertPowerPort({
     )
   }
   return elements
+}
+
+function getPowerPortPoint({
+  location,
+  direction,
+  perpendicular,
+  along,
+  across = 0,
+}: {
+  location: AltiumPoint
+  direction: AltiumPoint
+  perpendicular: AltiumPoint
+  along: number
+  across?: number
+}): AltiumPoint {
+  return {
+    x: location.x + direction.x * along + perpendicular.x * across,
+    y: location.y + direction.y * along + perpendicular.y * across,
+  }
 }
 
 function convertPort({

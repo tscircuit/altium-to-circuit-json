@@ -192,11 +192,6 @@ function createRunframeHtml(
   defaultActiveTab: InputKind,
   projectName: string,
 ) {
-  const encode = (serializableValue: unknown) =>
-    JSON.stringify(serializableValue)
-      .replace(/</g, "\\u003c")
-      .replace(/>/g, "\\u003e")
-      .replace(/&/g, "\\u0026")
   const props = {
     availableTabs: ["schematic", "pcb", "cad", "circuit_json"],
     autoRotate3dViewerDisabled: true,
@@ -209,7 +204,14 @@ function createRunframeHtml(
     showRightHeaderContent: true,
     showToggleFullScreen: true,
   }
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{height:100%;margin:0}body{background:#f8fafb}</style></head><body><div id="root"></div><script>try{if(localStorage.getItem("altium-viewer-silkscreen-initialized")!=="1"){localStorage.setItem("pcb_viewer_is_showing_silkscreen","true");localStorage.setItem("altium-viewer-silkscreen-initialized","1")}}catch{}window.CIRCUIT_JSON=${encode(circuitJson)};window.CIRCUIT_JSON_PREVIEW_PROPS=${encode(props)}</script><script src="${runframeUrl}"></script></body></html>`
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{height:100%;margin:0}body{background:#f8fafb}</style></head><body><div id="root"></div><script>try{if(localStorage.getItem("altium-viewer-silkscreen-initialized")!=="1"){localStorage.setItem("pcb_viewer_is_showing_silkscreen","true");localStorage.setItem("altium-viewer-silkscreen-initialized","1")}}catch{}window.CIRCUIT_JSON=${encodeJsonForInlineScript(circuitJson)};window.CIRCUIT_JSON_PREVIEW_PROPS=${encodeJsonForInlineScript(props)}</script><script src="${runframeUrl}"></script></body></html>`
+}
+
+function encodeJsonForInlineScript(serializableValue: unknown): string {
+  return JSON.stringify(serializableValue)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
 }
 
 function getInputKind(fileName: string | null): InputKind | null {
@@ -277,19 +279,31 @@ function namespaceElements(
       }
     }
   }
-  const remap = (nestedValue: unknown): unknown => {
-    if (typeof nestedValue === "string" && ids.has(nestedValue))
-      return `${namespace}_${nestedValue}`
-    if (Array.isArray(nestedValue)) return nestedValue.map(remap)
-    if (nestedValue && typeof nestedValue === "object") {
-      return Object.fromEntries(
-        Object.entries(nestedValue).map(([key, propertyValue]) => [
-          key,
-          remap(propertyValue),
-        ]),
-      )
-    }
-    return nestedValue
+  return elements.map(
+    (element) =>
+      remapCircuitJsonValue(element, ids, namespace) as AnyCircuitElement,
+  )
+}
+
+function remapCircuitJsonValue(
+  nestedValue: unknown,
+  ids: Set<string>,
+  namespace: string,
+): unknown {
+  if (typeof nestedValue === "string" && ids.has(nestedValue))
+    return `${namespace}_${nestedValue}`
+  if (Array.isArray(nestedValue)) {
+    return nestedValue.map((arrayValue) =>
+      remapCircuitJsonValue(arrayValue, ids, namespace),
+    )
   }
-  return elements.map((element) => remap(element) as AnyCircuitElement)
+  if (nestedValue && typeof nestedValue === "object") {
+    return Object.fromEntries(
+      Object.entries(nestedValue).map(([key, propertyValue]) => [
+        key,
+        remapCircuitJsonValue(propertyValue, ids, namespace),
+      ]),
+    )
+  }
+  return nestedValue
 }

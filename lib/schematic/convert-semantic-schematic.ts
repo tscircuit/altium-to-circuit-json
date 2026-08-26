@@ -81,6 +81,13 @@ interface SymbolPortAssignment {
   symbolPort: SchSymbol["ports"][number]
 }
 
+interface MutableSemanticNet {
+  id: string
+  names: Set<string>
+  points: Map<string, AltiumPoint>
+  records: Set<AltiumRecord>
+}
+
 interface SymbolSelection {
   assignments: SymbolPortAssignment[]
   name: string
@@ -616,36 +623,24 @@ function buildSemanticNetGraph(
     }
   }
 
-  interface MutableSemanticNet {
-    id: string
-    names: Set<string>
-    points: Map<string, AltiumPoint>
-    records: Set<AltiumRecord>
-  }
   const groupedByRoot = new Map<string, MutableSemanticNet>()
-  const getGroup = (point: AltiumPoint): MutableSemanticNet => {
-    const root = disjointSet.find(pointKey(point))
-    const existing = groupedByRoot.get(root)
-    if (existing) return existing
-    const created: MutableSemanticNet = {
-      id: root,
-      names: new Set(),
-      points: new Map(),
-      records: new Set(),
-    }
-    groupedByRoot.set(root, created)
-    return created
-  }
 
   for (const point of pointValues.values()) {
-    getGroup(point).points.set(pointKey(point), point)
+    getSemanticNetGroup(point, disjointSet, groupedByRoot).points.set(
+      pointKey(point),
+      point,
+    )
   }
   for (const wire of wireRecords) {
     const firstPoint = getSchematicRecordPoints(wire)[0]
-    if (firstPoint) getGroup(firstPoint).records.add(wire)
+    if (firstPoint) {
+      getSemanticNetGroup(firstPoint, disjointSet, groupedByRoot).records.add(
+        wire,
+      )
+    }
   }
   for (const { point, record } of [...positionedRecords, ...positionedPins]) {
-    const group = getGroup(point)
+    const group = getSemanticNetGroup(point, disjointSet, groupedByRoot)
     group.records.add(record)
     const name = getElectricalRecordName(record)
     if (name) group.names.add(name)
@@ -697,6 +692,24 @@ function buildSemanticNetGraph(
       connectedWiresByRecord.get(record) ?? [],
     nets,
   }
+}
+
+function getSemanticNetGroup(
+  point: AltiumPoint,
+  disjointSet: PointDisjointSet,
+  groupedByRoot: Map<string, MutableSemanticNet>,
+): MutableSemanticNet {
+  const root = disjointSet.find(pointKey(point))
+  const existing = groupedByRoot.get(root)
+  if (existing) return existing
+  const created: MutableSemanticNet = {
+    id: root,
+    names: new Set(),
+    points: new Map(),
+    records: new Set(),
+  }
+  groupedByRoot.set(root, created)
+  return created
 }
 
 function addGraphPoint(
@@ -1023,12 +1036,6 @@ function getEquivalentPortPrunedSegmentKeys(params: {
   }
   const segments = new Map<string, PrunableSegment>()
   const segmentKeysByPoint = new Map<string, Set<string>>()
-  const addIncidentSegment = (point: AltiumPoint, key: string): void => {
-    const pointSegments = segmentKeysByPoint.get(pointKey(point))
-    if (pointSegments) pointSegments.add(key)
-    else segmentKeysByPoint.set(pointKey(point), new Set([key]))
-  }
-
   for (const wire of wires) {
     const wirePoints = getSchematicRecordPoints(wire)
     for (let pointIndex = 1; pointIndex < wirePoints.length; pointIndex++) {
@@ -1050,8 +1057,8 @@ function getEquivalentPortPrunedSegmentKeys(params: {
           key,
           startKey: pointKey(segmentFrom),
         })
-        addIncidentSegment(segmentFrom, key)
-        addIncidentSegment(segmentTo, key)
+        addIncidentSegment(segmentFrom, key, segmentKeysByPoint)
+        addIncidentSegment(segmentTo, key, segmentKeysByPoint)
       }
     }
   }
@@ -1073,6 +1080,16 @@ function getEquivalentPortPrunedSegmentKeys(params: {
     )
   }
   return removedSegmentKeys
+}
+
+function addIncidentSegment(
+  point: AltiumPoint,
+  key: string,
+  segmentKeysByPoint: Map<string, Set<string>>,
+): void {
+  const pointSegments = segmentKeysByPoint.get(pointKey(point))
+  if (pointSegments) pointSegments.add(key)
+  else segmentKeysByPoint.set(pointKey(point), new Set([key]))
 }
 
 function createPortLeadEdges(
@@ -1362,12 +1379,11 @@ function getPortConnectionGeometry(
     x: origin.x + directionVector.x * width,
     y: origin.y + directionVector.y * width,
   }
-  const touchesWireEndpoint = (point: AltiumPoint): boolean =>
-    wireSegments.some((segment) =>
-      isPointNearSegmentEndpoint(point, segment.start, segment.end),
-    )
-  const originConnected = touchesWireEndpoint(origin)
-  const extremityConnected = touchesWireEndpoint(extremity)
+  const originConnected = isPointConnectedToWireEndpoint(origin, wireSegments)
+  const extremityConnected = isPointConnectedToWireEndpoint(
+    extremity,
+    wireSegments,
+  )
   const connectedEnd = record.getNumber("CONNECTEDEND")
   const connectsAtExtremity =
     connectedEnd === 2 ||
@@ -1382,6 +1398,15 @@ function getPortConnectionGeometry(
         bodyDirection: getOppositeDirection(originToExtremity),
       }
     : { anchor: origin, bodyDirection: originToExtremity }
+}
+
+function isPointConnectedToWireEndpoint(
+  point: AltiumPoint,
+  wireSegments: SchematicSegment[],
+): boolean {
+  return wireSegments.some((segment) =>
+    isPointNearSegmentEndpoint(point, segment.start, segment.end),
+  )
 }
 
 function isPointNearSegmentEndpoint(
