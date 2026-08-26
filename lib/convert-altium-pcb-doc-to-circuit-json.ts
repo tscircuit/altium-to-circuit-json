@@ -35,6 +35,7 @@ import type {
 const MILS_TO_MILLIMETERS = 0.0254
 const BOARD_ID = "pcb_board_altium"
 const BOARD_GRAPHICS_COMPONENT_ID = "pcb_component_altium_board_graphics"
+type CourtyardGroupKey = string
 
 export interface ConvertAltiumPcbDocOptions {
   includeBoardOutline?: boolean
@@ -216,7 +217,7 @@ function getCourtyardRecordPoints(record: AltiumRecord): AltiumPoint[] {
 }
 
 function stitchCourtyardPaths(paths: CourtyardPath[]): CourtyardPath[] {
-  const groups = new Map<string, CourtyardPath[]>()
+  const groups = new Map<CourtyardGroupKey, CourtyardPath[]>()
   for (const path of deduplicateCourtyardPaths(paths)) {
     const key = [
       path.componentId,

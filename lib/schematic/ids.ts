@@ -1,3 +1,10 @@
+export type ComponentId = string
+export type ComponentDesignator = string
+export type NetName = string
+export type PointKey = string
+export type SegmentKey = string
+export type SourceNetId = string
+
 export function uniqueStrings(values: Array<string | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
 }

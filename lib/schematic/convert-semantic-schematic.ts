@@ -43,6 +43,12 @@ import {
   subtractPoints,
 } from "./geometry"
 import {
+  type ComponentId,
+  type ComponentDesignator,
+  type NetName,
+  type PointKey,
+  type SegmentKey,
+  type SourceNetId,
   isGroundNet,
   isPowerNet,
   sanitizeId,
@@ -186,7 +192,10 @@ function convertComponents(params: {
 }): void {
   const { convertedPorts, document, elements, handledRecords, options } = params
   const documentIndex = getSchematicDocumentIndex(document)
-  const sourceComponentIdByDesignator = new Map<string, string>()
+  const sourceComponentIdByDesignator = new Map<
+    ComponentDesignator,
+    ComponentId
+  >()
 
   for (const [componentIndex, componentRecord] of document.records.entries()) {
     if (componentRecord.recordKind !== "1") continue
@@ -563,7 +572,7 @@ function buildSemanticNetGraph(
   convertedPorts: ConvertedPort[],
 ): SemanticNetGraph {
   const disjointSet = new PointDisjointSet()
-  const pointValues = new Map<string, AltiumPoint>()
+  const pointValues = new Map<PointKey, AltiumPoint>()
   const wireRecords = document.records.filter(
     (record) => record.recordKind === "27",
   )
@@ -618,11 +627,11 @@ function buildSemanticNetGraph(
 
   interface MutableSemanticNet {
     id: string
-    names: Set<string>
-    points: Map<string, AltiumPoint>
+    names: Set<NetName>
+    points: Map<PointKey, AltiumPoint>
     records: Set<AltiumRecord>
   }
-  const groupedByRoot = new Map<string, MutableSemanticNet>()
+  const groupedByRoot = new Map<PointKey, MutableSemanticNet>()
   const getGroup = (point: AltiumPoint): MutableSemanticNet => {
     const root = disjointSet.find(pointKey(point))
     const existing = groupedByRoot.get(root)
@@ -701,7 +710,7 @@ function buildSemanticNetGraph(
 
 function addGraphPoint(
   disjointSet: PointDisjointSet,
-  pointValues: Map<string, AltiumPoint>,
+  pointValues: Map<PointKey, AltiumPoint>,
   point: AltiumPoint,
 ): void {
   const key = pointKey(point)
@@ -719,13 +728,13 @@ function getElectricalRecordName(record: AltiumRecord): string | undefined {
 
 function mergeSemanticNetGroup(
   target: {
-    names: Set<string>
-    points: Map<string, AltiumPoint>
+    names: Set<NetName>
+    points: Map<PointKey, AltiumPoint>
     records: Set<AltiumRecord>
   },
   source: {
-    names: Set<string>
-    points: Map<string, AltiumPoint>
+    names: Set<NetName>
+    points: Map<PointKey, AltiumPoint>
     records: Set<AltiumRecord>
   },
 ): void {
@@ -760,7 +769,7 @@ function splitSegmentAtPoints(
   const lengthSquared = dx * dx + dy * dy
   if (lengthSquared === 0) return [start]
 
-  const pointsByKey = new Map<string, AltiumPoint>([
+  const pointsByKey = new Map<PointKey, AltiumPoint>([
     [pointKey(start), start],
     [pointKey(end), end],
   ])
@@ -777,7 +786,7 @@ function splitSegmentAtPoints(
 }
 
 class PointDisjointSet {
-  private readonly parent = new Map<string, string>()
+  private readonly parent = new Map<PointKey, PointKey>()
 
   add(value: string): void {
     if (!this.parent.has(value)) this.parent.set(value, value)
@@ -801,7 +810,7 @@ class PointDisjointSet {
 
 interface ConnectivityConversion {
   sourceNetIdByRecord: Map<AltiumRecord, string>
-  sourceNetIdByName: Map<string, string>
+  sourceNetIdByName: Map<NetName, SourceNetId>
   sourcePortCountByRecord: Map<AltiumRecord, number>
   sourceTraceIdByRecord: Map<AltiumRecord, string>
   schematicTraceIdByRecord: Map<AltiumRecord, string>
@@ -823,7 +832,7 @@ function convertConnectivity(params: {
     options,
     semanticNetGraph: graph,
   } = params
-  const sourceNetIdByName = new Map<string, string>()
+  const sourceNetIdByName = new Map<NetName, SourceNetId>()
   const sourceNetIdByRecord = new Map<AltiumRecord, string>()
   const sourcePortCountByRecord = new Map<AltiumRecord, number>()
   const sourceTraceIdByRecord = new Map<AltiumRecord, string>()
@@ -1019,8 +1028,8 @@ function getEquivalentPortPrunedSegmentKeys(params: {
     key: string
     startKey: string
   }
-  const segments = new Map<string, PrunableSegment>()
-  const segmentKeysByPoint = new Map<string, Set<string>>()
+  const segments = new Map<SegmentKey, PrunableSegment>()
+  const segmentKeysByPoint = new Map<PointKey, Set<SegmentKey>>()
   const addIncidentSegment = (point: AltiumPoint, key: string): void => {
     const pointSegments = segmentKeysByPoint.get(pointKey(point))
     if (pointSegments) pointSegments.add(key)
@@ -1404,7 +1413,7 @@ function getOppositeDirection(direction: CardinalDirection): CardinalDirection {
 function getOrCreateSourceNet(params: {
   elements: AnyCircuitElement[]
   name: string
-  sourceNetIdByName: Map<string, string>
+  sourceNetIdByName: Map<NetName, SourceNetId>
 }): string {
   const { elements, name, sourceNetIdByName } = params
   const normalizedName = name.trim().toUpperCase()
@@ -1824,8 +1833,8 @@ function directionToOppositeSide(
   return direction === "left" ? "right" : "left"
 }
 
-function groupByPoint(ports: ConvertedPort[]): Map<string, ConvertedPort[]> {
-  const grouped = new Map<string, ConvertedPort[]>()
+function groupByPoint(ports: ConvertedPort[]): Map<PointKey, ConvertedPort[]> {
+  const grouped = new Map<PointKey, ConvertedPort[]>()
   for (const port of ports) {
     const key = pointKey(port.point)
     const existing = grouped.get(key)
