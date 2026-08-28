@@ -49,6 +49,7 @@ import {
   segmentKey,
   uniqueStrings,
 } from "./ids"
+import { altiumColorToCss } from "./render-text"
 import {
   classifyComponent,
   getMosfetVariant,
@@ -127,7 +128,8 @@ const CARDINAL_DIRECTIONS: readonly CardinalDirection[] = [
 
 const SYMBOL_CATALOG = symbols as Record<string, SchSymbol | undefined>
 const SYMBOL_NAMES = Object.keys(SYMBOL_CATALOG)
-const INLINE_NET_LABEL_COLOR = "rgb(132, 0, 0)"
+const DEFAULT_ALTIUM_COMPONENT_TEXT_COLOR = "#000080"
+const DEFAULT_ALTIUM_NET_LABEL_COLOR = "#880000"
 const DEFAULT_INLINE_NET_LABEL_FONT_SIZE = 0.18
 const MIN_INLINE_NET_LABEL_FONT_SIZE = 0.1
 const INLINE_NET_LABEL_CHARACTER_WIDTH = 0.12
@@ -214,17 +216,24 @@ function convertComponents(params: {
         }),
     )
 
+    const designatorRecord = findOwnedTextRecord(
+      ownedRecords,
+      "34",
+      "Designator",
+    )
     const designator =
-      findOwnedText(ownedRecords, "34", "Designator") ??
+      designatorRecord?.getDecoded("TEXT") ??
       componentRecord.getDecoded("DESIGNATOR") ??
       `U${componentIndex}`
     // Altium libraries commonly store the human-readable component value in
     // the named `Value` parameter, while `Comment` may contain a manufacturer
     // part number (or another library-specific description). Prefer the
     // explicit value field and retain the older fallbacks for simpler files.
+    const valueRecord =
+      findOwnedTextRecord(ownedRecords, "41", "Value") ??
+      findOwnedTextRecord(ownedRecords, "41", "Comment")
     const value =
-      findOwnedText(ownedRecords, "41", "Value")?.trim() ||
-      findOwnedText(ownedRecords, "41", "Comment")?.trim() ||
+      valueRecord?.getDecoded("TEXT")?.trim() ||
       componentRecord.getDecoded("COMMENT")?.trim() ||
       componentRecord.getDecoded("DESIGNITEMID")?.trim() ||
       componentRecord.getDecoded("LIBREFERENCE")?.trim() ||
@@ -325,6 +334,10 @@ function convertComponents(params: {
       elements.push(
         createComponentText({
           anchor: "bottom_left",
+          color: altiumColorToCss(
+            designatorRecord?.getCaseInsensitive("COLOR"),
+            DEFAULT_ALTIUM_COMPONENT_TEXT_COLOR,
+          ),
           component: schematicComponent,
           id: `schematic_component_designator_altium_${componentIndex}`,
           position: {
@@ -338,6 +351,10 @@ function convertComponents(params: {
         elements.push(
           createComponentText({
             anchor: "top_left",
+            color: altiumColorToCss(
+              valueRecord?.getCaseInsensitive("COLOR"),
+              DEFAULT_ALTIUM_COMPONENT_TEXT_COLOR,
+            ),
             component: schematicComponent,
             id: `schematic_component_value_altium_${componentIndex}`,
             position: {
@@ -572,16 +589,17 @@ function parseFiniteComponentValue({
 
 function createComponentText(params: {
   anchor: SchematicText["anchor"]
+  color: string
   component: SchematicComponent
   id: string
   position: AltiumPoint
   text: string
 }): SchematicText {
-  const { anchor, component, id, position, text } = params
+  const { anchor, color, component, id, position, text } = params
   return {
     type: "schematic_text",
     anchor,
-    color: "#006464",
+    color,
     font_size: 0.18,
     position,
     rotation: 0,
@@ -1310,7 +1328,10 @@ function createInlineNetLabelText(params: {
   return {
     type: "schematic_text",
     anchor,
-    color: INLINE_NET_LABEL_COLOR,
+    color: altiumColorToCss(
+      record.getCaseInsensitive("COLOR"),
+      DEFAULT_ALTIUM_NET_LABEL_COLOR,
+    ),
     font_size: fontSize,
     position,
     rotation: isVertical ? -90 : 0,
@@ -1812,13 +1833,19 @@ function findOwnedText(
   recordKind: string,
   name: string,
 ): string | undefined {
-  return records
-    .find(
-      (record) =>
-        record.recordKind === recordKind &&
-        record.getDecoded("NAME")?.toLowerCase() === name.toLowerCase(),
-    )
-    ?.getDecoded("TEXT")
+  return findOwnedTextRecord(records, recordKind, name)?.getDecoded("TEXT")
+}
+
+function findOwnedTextRecord(
+  records: AltiumRecord[],
+  recordKind: string,
+  name: string,
+): AltiumRecord | undefined {
+  return records.find(
+    (record) =>
+      record.recordKind === recordKind &&
+      record.getDecoded("NAME")?.toLowerCase() === name.toLowerCase(),
+  )
 }
 
 function isOwnedRecordVisible(
