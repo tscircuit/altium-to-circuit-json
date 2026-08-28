@@ -31,10 +31,15 @@ import type {
   PcbTrace,
   PcbVia,
 } from "circuit-json"
+import { convertAltiumPcbAnnotations } from "./pcb/convert-altium-pcb-annotations"
+import {
+  approximateAltiumArc,
+  milsToMillimeters,
+  toMillimeterPoint,
+} from "./pcb/coordinates"
 import { getPreferredPcbBoardOutline } from "./pcb/get-board-outline"
 import { stitchConnectedAltiumPaths } from "./pcb/stitch-connected-paths"
 
-const MILS_TO_MILLIMETERS = 0.0254
 const BOARD_ID = "pcb_board_altium"
 const BOARD_GRAPHICS_COMPONENT_ID = "pcb_component_altium_board_graphics"
 
@@ -43,6 +48,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeComponents?: boolean
   includeCourtyards?: boolean
   includePads?: boolean
+  includePcbAnnotations?: boolean
   includeSilkscreen?: boolean
   includeTraces?: boolean
   includeVias?: boolean
@@ -97,6 +103,10 @@ export function convertAltiumPcbDocToCircuitJson(
     options.includeComponents !== false
   ) {
     elements.push(...convertCourtyards(document))
+  }
+
+  if (options.includePcbAnnotations !== false) {
+    elements.push(...convertAltiumPcbAnnotations({ document }))
   }
 
   for (const [index, record] of document.records.entries()) {
@@ -203,9 +213,9 @@ function getCourtyardRecordPoints(record: AltiumRecord): AltiumPoint[] {
   }
   if (record instanceof AltiumArcRecord) {
     return record.center && record.radiusMils
-      ? approximateArc({
+      ? approximateAltiumArc({
           center: record.center,
-          radius: record.radiusMils,
+          radiusMils: record.radiusMils,
           startAngle: record.startAngle,
           endAngle: record.endAngle,
         })
@@ -427,7 +437,7 @@ function convertPad(
           1,
         ),
       )
-      const holeHeight = Math.max(holeDiameter, MILS_TO_MILLIMETERS)
+      const holeHeight = Math.max(holeDiameter, milsToMillimeters(1))
       if (isRectangularShape(shape)) {
         const rotated = record.holeRotation !== 0 || record.rotation !== 0
         return {
@@ -473,7 +483,7 @@ function convertPad(
         shape: "circular_hole_with_rect_pad",
         hole_shape: "circle",
         pad_shape: "rect",
-        hole_diameter: Math.max(holeDiameter, MILS_TO_MILLIMETERS),
+        hole_diameter: Math.max(holeDiameter, milsToMillimeters(1)),
         rect_pad_width: width,
         rect_pad_height: height,
         rect_border_radius: shape.includes("ROUNDRECT")
@@ -494,7 +504,7 @@ function convertPad(
         pcb_plated_hole_id: `pcb_plated_hole_${id}`,
         shape: "hole_with_polygon_pad",
         hole_shape: "circle",
-        hole_diameter: Math.max(holeDiameter, MILS_TO_MILLIMETERS),
+        hole_diameter: Math.max(holeDiameter, milsToMillimeters(1)),
         pad_outline: createOctagonPoints({
           x,
           y,
@@ -518,8 +528,8 @@ function convertPad(
           shape: "pill",
           outer_width: width,
           outer_height: height,
-          hole_width: Math.max(holeDiameter, MILS_TO_MILLIMETERS),
-          hole_height: Math.max(holeDiameter, MILS_TO_MILLIMETERS),
+          hole_width: Math.max(holeDiameter, milsToMillimeters(1)),
+          hole_height: Math.max(holeDiameter, milsToMillimeters(1)),
           ccw_rotation: record.rotation,
           x,
           y,
@@ -533,7 +543,7 @@ function convertPad(
       pcb_plated_hole_id: `pcb_plated_hole_${id}`,
       shape: "circle",
       outer_diameter: Math.max(width, height),
-      hole_diameter: Math.max(holeDiameter, MILS_TO_MILLIMETERS),
+      hole_diameter: Math.max(holeDiameter, milsToMillimeters(1)),
       x,
       y,
       layers,
@@ -624,9 +634,9 @@ function convertSilkscreenArc(
   index: number,
 ): PcbSilkscreenPath | undefined {
   if (!record.center || !record.radiusMils) return undefined
-  const points = approximateArc({
+  const points = approximateAltiumArc({
     center: record.center,
-    radius: record.radiusMils,
+    radiusMils: record.radiusMils,
     startAngle: record.startAngle,
     endAngle: record.endAngle,
   })
@@ -768,14 +778,6 @@ function getMeasurement(record: AltiumRecord, key: string): number | undefined {
   return parseAltiumMeasurementToMils(record.getCaseInsensitive(key))
 }
 
-function milsToMillimeters(value: number): number {
-  return value * MILS_TO_MILLIMETERS
-}
-
-function toMillimeterPoint(point: AltiumPoint): { x: number; y: number } {
-  return { x: milsToMillimeters(point.x), y: milsToMillimeters(point.y) }
-}
-
 function withNumberedPoints(
   start: AltiumPoint,
   end: AltiumPoint,
@@ -786,29 +788,6 @@ function withNumberedPoints(
     x2: milsToMillimeters(end.x),
     y2: milsToMillimeters(end.y),
   }
-}
-
-function approximateArc({
-  center,
-  radius,
-  startAngle,
-  endAngle,
-}: {
-  center: AltiumPoint
-  radius: number
-  startAngle: number
-  endAngle: number
-}): AltiumPoint[] {
-  const sweep = endAngle - startAngle || 360
-  const segments = Math.max(8, Math.ceil(Math.abs(sweep) / 7.5))
-  return Array.from({ length: segments + 1 }, (_, index) => {
-    const angle = startAngle + (sweep * index) / segments
-    const radians = (angle * Math.PI) / 180
-    return {
-      x: center.x + Math.cos(radians) * radius,
-      y: center.y + Math.sin(radians) * radius,
-    }
-  })
 }
 
 function createOctagonPoints({
