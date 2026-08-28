@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { parseAltiumSchDoc, serializeAltiumSheetToSvg } from "altiumts"
 import type { SchematicText } from "circuit-json"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
-import { ALTIUM_SCHEMATIC_COLOR_OVERRIDES } from "../helpers/altium-schematic-color-overrides"
+import { getAltiumSchematicColorOverrides } from "../helpers/altium-schematic-color-overrides"
 import { renderImportedSchematicToSvg } from "../helpers/render-imported-schematic"
 import { stackAltiumAndCircuitJsonSvgs } from "../helpers/stack-svg-comparison"
 
@@ -39,7 +39,9 @@ test("preserves Altium colors for semantic schematic text", async () => {
     width: 800,
   })
   const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson, {
-    colorOverrides: { schematic: ALTIUM_SCHEMATIC_COLOR_OVERRIDES },
+    colorOverrides: {
+      schematic: getAltiumSchematicColorOverrides({ document: schematic }),
+    },
   })
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
     altiumSvg,

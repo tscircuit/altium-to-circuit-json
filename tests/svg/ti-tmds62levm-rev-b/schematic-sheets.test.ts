@@ -6,6 +6,7 @@ import {
   TI_TMDS62LEVM_FIXTURE_NAME,
   TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS,
 } from "../../../scripts/references/reference-manifest"
+import { getAltiumSchematicColorOverrides } from "../../helpers/altium-schematic-color-overrides"
 import { findDetachedSymbolPortIds } from "../../helpers/find-detached-symbol-ports"
 import { readReferenceBytes } from "../../helpers/read-reference"
 import { renderImportedSchematicToSvg } from "../../helpers/render-imported-schematic"
@@ -39,7 +40,11 @@ for (const sheetNumber of TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS) {
         title: `${title} — altiumts source`,
         width: 800,
       })
-      const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson)
+      const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson, {
+        colorOverrides: {
+          schematic: getAltiumSchematicColorOverrides({ document }),
+        },
+      })
       expect(circuitJsonSvg).toContain(
         'data-circuit-json-type="schematic_sheet"',
       )
