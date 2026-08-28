@@ -32,6 +32,7 @@ import type {
   PcbVia,
 } from "circuit-json"
 import { getPreferredPcbBoardOutline } from "./pcb/get-board-outline"
+import { isAltiumPcbTextVisible } from "./pcb/is-altium-pcb-text-visible"
 import { stitchConnectedAltiumPaths } from "./pcb/stitch-connected-paths"
 
 const MILS_TO_MILLIMETERS = 0.0254
@@ -138,7 +139,10 @@ export function convertAltiumPcbDocToCircuitJson(
     } else if (record instanceof AltiumFillRecord) {
       const rect = convertSilkscreenFill(record, index)
       if (rect) elements.push(rect)
-    } else if (record instanceof AltiumTextRecord) {
+    } else if (
+      record instanceof AltiumTextRecord &&
+      isAltiumPcbTextVisible({ document, record })
+    ) {
       const text = convertSilkscreenText(record, index)
       if (text) elements.push(text)
     }
