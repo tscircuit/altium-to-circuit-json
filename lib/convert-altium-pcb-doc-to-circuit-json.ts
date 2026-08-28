@@ -31,6 +31,8 @@ import type {
   PcbTrace,
   PcbVia,
 } from "circuit-json"
+import { convertAltiumPcbSolderPaste } from "./pcb/convert-altium-pcb-solder-paste"
+import { convertAltiumPcbSoldermaskOpening } from "./pcb/convert-altium-pcb-soldermask-opening"
 import { getPreferredPcbBoardOutline } from "./pcb/get-board-outline"
 import { stitchConnectedAltiumPaths } from "./pcb/stitch-connected-paths"
 
@@ -44,6 +46,8 @@ export interface ConvertAltiumPcbDocOptions {
   includeCourtyards?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
+  includeSolderPaste?: boolean
+  includeSoldermaskOpenings?: boolean
   includeTraces?: boolean
   includeVias?: boolean
 }
@@ -100,6 +104,28 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   for (const [index, record] of document.records.entries()) {
+    if (options.includeSolderPaste !== false) {
+      const solderPaste = convertAltiumPcbSolderPaste({
+        record,
+        recordIndex: index,
+      })
+      if (solderPaste) {
+        elements.push(solderPaste)
+        continue
+      }
+    }
+
+    if (options.includeSoldermaskOpenings !== false) {
+      const soldermaskOpening = convertAltiumPcbSoldermaskOpening({
+        record,
+        recordIndex: index,
+      })
+      if (soldermaskOpening) {
+        elements.push(soldermaskOpening)
+        continue
+      }
+    }
+
     if (record instanceof AltiumPadRecord && options.includePads !== false) {
       const pad = convertPad(record, index)
       if (pad) elements.push(pad)
@@ -399,6 +425,14 @@ function convertPad(
   const holeDiameter = milsToMillimeters(record.holeSizeMils ?? 0)
   const shape = normalizeShape(record.shape)
   const id = `altium_${index}`
+  const soldermaskMargin =
+    record.solderMaskExpansionMils === undefined
+      ? undefined
+      : milsToMillimeters(record.solderMaskExpansionMils)
+  const throughHoleSolderMask = {
+    soldermask_margin: soldermaskMargin,
+    is_covered_with_solder_mask: getThroughHoleSolderMaskCoverage({ record }),
+  }
 
   if (record.plated === false && holeDiameter > 0) {
     return {
@@ -408,6 +442,7 @@ function convertPad(
       hole_diameter: holeDiameter,
       x,
       y,
+      ...throughHoleSolderMask,
     }
   }
 
@@ -449,6 +484,7 @@ function convertPad(
           x,
           y,
           layers,
+          ...throughHoleSolderMask,
         } as PcbPlatedHole
       }
       return {
@@ -463,6 +499,7 @@ function convertPad(
         x,
         y,
         layers,
+        ...throughHoleSolderMask,
       }
     }
 
@@ -485,6 +522,7 @@ function convertPad(
         x,
         y,
         layers,
+        ...throughHoleSolderMask,
       }
     }
 
@@ -507,6 +545,7 @@ function convertPad(
         x,
         y,
         layers,
+        ...throughHoleSolderMask,
       }
     }
 
@@ -524,6 +563,7 @@ function convertPad(
           x,
           y,
           layers,
+          ...throughHoleSolderMask,
         }
       }
     }
@@ -537,6 +577,7 @@ function convertPad(
       x,
       y,
       layers,
+      ...throughHoleSolderMask,
     }
   }
 
@@ -548,10 +589,15 @@ function convertPad(
     x,
     y,
     layer,
-    soldermask_margin:
-      record.solderMaskExpansionMils === undefined
+    soldermask_margin: soldermaskMargin,
+    solderpaste_margin:
+      record.pasteMaskExpansionMils === undefined
         ? undefined
-        : milsToMillimeters(record.solderMaskExpansionMils),
+        : milsToMillimeters(record.pasteMaskExpansionMils),
+    is_covered_with_solder_mask: getSmtPadSolderMaskCoverage({
+      layer,
+      record,
+    }),
   }
 
   if (shape.includes("OCTAGON")) {
@@ -602,6 +648,26 @@ function convertPad(
         corner_radius: cornerRadius,
         ccw_rotation: record.rotation,
       }
+}
+
+function getSmtPadSolderMaskCoverage({
+  layer,
+  record,
+}: {
+  layer: LayerRef
+  record: AltiumPadRecord
+}): boolean | undefined {
+  if (layer === "top") return record.tentedTop
+  if (layer === "bottom") return record.tentedBottom
+  return undefined
+}
+
+function getThroughHoleSolderMaskCoverage({
+  record,
+}: {
+  record: AltiumPadRecord
+}): boolean | undefined {
+  return record.tentedTop === record.tentedBottom ? record.tentedTop : undefined
 }
 
 function convertSilkscreenLine(
