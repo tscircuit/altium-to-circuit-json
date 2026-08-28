@@ -1,6 +1,7 @@
 import { parseAltiumSchDoc, serializeAltiumSheetToSvg } from "altiumts"
 import type { AnyCircuitElement } from "circuit-json"
 import { convertAltiumToCircuitJson } from "../../lib"
+import { getAltiumSchematicColorOverrides } from "./altium-schematic-color-overrides"
 import { readReferenceBytes } from "./read-reference"
 import { renderImportedSchematicToSvg } from "./render-imported-schematic"
 import { stackAltiumAndCircuitJsonSvgs } from "./stack-svg-comparison"
@@ -29,7 +30,11 @@ export async function createOpenSourceSchematicComparison({
     title: "altiumts source rendering",
     width: 800,
   })
-  const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson)
+  const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson, {
+    colorOverrides: {
+      schematic: getAltiumSchematicColorOverrides({ document }),
+    },
+  })
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
     altiumSvg,
     circuitJsonSvg,
