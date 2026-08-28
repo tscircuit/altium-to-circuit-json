@@ -10,6 +10,8 @@ import { convertAltiumToCircuitJson } from "../../lib"
 import { readReferenceBytes } from "./read-reference"
 import { stackAltiumAndCircuitJsonSvgs } from "./stack-svg-comparison"
 
+const CIRCUIT_JSON_PCB_BACKGROUND_COLOR = "#000"
+
 interface OpenSourcePcbComparison {
   circuitJson: AnyCircuitElement[]
   circuitJsonSvg: string
@@ -40,6 +42,8 @@ export async function createOpenSourcePcbComparison({
     width: 800,
   })
   const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
+    backgroundColor: CIRCUIT_JSON_PCB_BACKGROUND_COLOR,
+    colorOverrides: { drill: CIRCUIT_JSON_PCB_BACKGROUND_COLOR },
     matchBoardAspectRatio: true,
   })
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
