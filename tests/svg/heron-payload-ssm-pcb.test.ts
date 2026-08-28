@@ -12,6 +12,9 @@ test(
       })
 
     expectValidImportedPcb({ circuitJson, circuitJsonSvg })
+    expect(
+      circuitJson.filter((element) => element.type === "pcb_solder_paste"),
+    ).toHaveLength(16)
     await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
   },
   { timeout: 40_000 },

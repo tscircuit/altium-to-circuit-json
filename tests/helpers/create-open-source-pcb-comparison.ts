@@ -41,6 +41,8 @@ export async function createOpenSourcePcbComparison({
   })
   const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
     matchBoardAspectRatio: true,
+    showSolderMask: true,
+    showSolderPaste: true,
   })
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
     altiumSvg,
