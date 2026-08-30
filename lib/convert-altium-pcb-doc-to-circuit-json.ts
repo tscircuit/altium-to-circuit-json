@@ -119,6 +119,19 @@ export function convertAltiumPcbDocToCircuitJson(
       continue
     }
 
+    if (record instanceof AltiumArcRecord) {
+      if (isCourtyardLayer(record.layer)) continue
+      if (isOverlayLayer(record.layer)) {
+        if (options.includeSilkscreen === false) continue
+        const path = convertSilkscreenArc(record, index)
+        if (path) elements.push(path)
+      } else if (options.includeTraces !== false) {
+        const trace = convertCopperArc(record, index)
+        if (trace) elements.push(trace)
+      }
+      continue
+    }
+
     if (record instanceof AltiumViaRecord && options.includeVias !== false) {
       const via = convertVia(record, index)
       if (via) elements.push(via)
@@ -132,10 +145,7 @@ export function convertAltiumPcbDocToCircuitJson(
       continue
     }
 
-    if (record instanceof AltiumArcRecord) {
-      const path = convertSilkscreenArc(record, index)
-      if (path) elements.push(path)
-    } else if (record instanceof AltiumFillRecord) {
+    if (record instanceof AltiumFillRecord) {
       const rect = convertSilkscreenFill(record, index)
       if (rect) elements.push(rect)
     } else if (record instanceof AltiumTextRecord) {
@@ -145,6 +155,31 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   return elements
+}
+
+function convertCopperArc(
+  record: AltiumArcRecord,
+  index: number,
+): PcbTrace | undefined {
+  const layer = mapCopperLayer(record.layer)
+  if (!record.center || !record.radiusMils || !layer) return undefined
+  const width = milsToMillimeters(record.widthMils ?? 4)
+  return {
+    type: "pcb_trace",
+    pcb_trace_id: `pcb_trace_altium_${index}`,
+    should_round_corners: false,
+    route: approximateArc({
+      center: record.center,
+      radius: record.radiusMils,
+      startAngle: record.startAngle,
+      endAngle: record.endAngle,
+    }).map((point) => ({
+      route_type: "wire" as const,
+      ...toMillimeterPoint(point),
+      width,
+      layer,
+    })),
+  }
 }
 
 interface CourtyardPath {
