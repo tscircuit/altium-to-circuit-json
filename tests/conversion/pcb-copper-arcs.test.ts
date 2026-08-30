@@ -3,7 +3,7 @@ import { parseAltiumPcbDoc, serializeAltiumPcbToSvg } from "altiumts"
 import type { PcbTrace } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumPcbDocToCircuitJson } from "../../lib"
-import { stackAltiumAndCircuitJsonSvgs } from "../helpers/stack-svg-comparison"
+import { stackAltiumAndCircuitJsonSvgsVertically } from "../helpers/stack-svg-comparison"
 
 const copperArcPcbDoc = parseAltiumPcbDoc(
   [
@@ -51,7 +51,7 @@ test("imports copper arcs as PCB traces", async () => {
     matchBoardAspectRatio: true,
     width: 800,
   })
-  const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
+  const comparisonSvg = stackAltiumAndCircuitJsonSvgsVertically({
     altiumSvg,
     circuitJsonSvg,
     label: "PCB copper arc",
