@@ -399,8 +399,47 @@ function convertPad(
   const holeDiameter = milsToMillimeters(record.holeSizeMils ?? 0)
   const shape = normalizeShape(record.shape)
   const id = `altium_${index}`
+  const slotLengthMils = getMeasurement(record, "SLOTLENGTH")
+  const holeWidthMils = record.holeWidthMils ?? record.holeSizeMils
+  const holeType = normalizeShape(record.holeType)
+  const isSlot =
+    holeType === "2" ||
+    holeType.includes("SLOT") ||
+    (slotLengthMils ?? 0) > (record.holeSizeMils ?? 0) ||
+    (holeWidthMils ?? 0) > (record.holeSizeMils ?? 0)
 
   if (record.plated === false && holeDiameter > 0) {
+    if (isSlot) {
+      const holeWidth = milsToMillimeters(
+        Math.max(
+          slotLengthMils ?? holeWidthMils ?? record.holeSizeMils ?? 1,
+          1,
+        ),
+      )
+      const holeHeight = Math.max(holeDiameter, MILS_TO_MILLIMETERS)
+      const rotation = record.holeRotation || record.rotation || 0
+      if (rotation === 0) {
+        return {
+          type: "pcb_hole",
+          pcb_hole_id: `pcb_hole_${id}`,
+          hole_shape: "pill",
+          hole_width: holeWidth,
+          hole_height: holeHeight,
+          x,
+          y,
+        } satisfies PcbHole
+      }
+      return {
+        type: "pcb_hole",
+        pcb_hole_id: `pcb_hole_${id}`,
+        hole_shape: "rotated_pill",
+        hole_width: holeWidth,
+        hole_height: holeHeight,
+        ccw_rotation: rotation,
+        x,
+        y,
+      } satisfies PcbHole
+    }
     return {
       type: "pcb_hole",
       pcb_hole_id: `pcb_hole_${id}`,
@@ -412,12 +451,6 @@ function convertPad(
   }
 
   if (record.behavior === "through-hole" || holeDiameter > 0) {
-    const slotLengthMils = getMeasurement(record, "SLOTLENGTH")
-    const holeWidthMils = record.holeWidthMils ?? record.holeSizeMils
-    const isSlot =
-      normalizeShape(record.holeType).includes("SLOT") ||
-      (slotLengthMils ?? 0) > (record.holeSizeMils ?? 0) ||
-      (holeWidthMils ?? 0) > (record.holeSizeMils ?? 0)
     const layers: LayerRef[] = ["top", "bottom"]
 
     if (isSlot) {
