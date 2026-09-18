@@ -1,5 +1,6 @@
 import {
   AltiumArcRecord,
+  AltiumDimensionRecord,
   AltiumFillRecord,
   AltiumPadRecord,
   type AltiumPcbDocument,
@@ -21,12 +22,14 @@ import type {
   PcbComponent,
   PcbCourtyardOutline,
   PcbCutout,
+  PcbFabricationNoteDimension,
   PcbHole,
   PcbPlatedHole,
   PcbSilkscreenLine,
   PcbSilkscreenPath,
   PcbSilkscreenRect,
   PcbSilkscreenText,
+  PcbCopperText,
   PcbSmtPad,
   PcbTrace,
   PcbVia,
@@ -50,6 +53,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeComponents?: boolean
   includeCopperAreas?: boolean
   includeCourtyards?: boolean
+  includeDimensions?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
   includeTraces?: boolean
@@ -112,6 +116,15 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   for (const [index, record] of document.records.entries()) {
+    if (
+      record instanceof AltiumDimensionRecord &&
+      options.includeDimensions !== false
+    ) {
+      const dimension = convertDimension(record, index)
+      if (dimension) elements.push(dimension)
+      continue
+    }
+
     if (record instanceof AltiumPadRecord && options.includePads !== false) {
       const pad = convertPad(record, index)
       if (pad) elements.push(pad)
@@ -137,6 +150,19 @@ export function convertAltiumPcbDocToCircuitJson(
       continue
     }
 
+    if (record instanceof AltiumTextRecord) {
+      if (isCourtyardLayer(record.layer)) continue
+      if (isOverlayLayer(record.layer)) {
+        if (options.includeSilkscreen === false) continue
+        const text = convertSilkscreenText(record, index)
+        if (text) elements.push(text)
+      } else {
+        const text = convertCopperText(record, index)
+        if (text) elements.push(text)
+      }
+      continue
+    }
+
     if (
       options.includeSilkscreen === false ||
       !isOverlayLayer(getLayer(record))
@@ -150,13 +176,81 @@ export function convertAltiumPcbDocToCircuitJson(
     } else if (record instanceof AltiumFillRecord) {
       const rect = convertSilkscreenFill(record, index)
       if (rect) elements.push(rect)
-    } else if (record instanceof AltiumTextRecord) {
-      const text = convertSilkscreenText(record, index)
-      if (text) elements.push(text)
     }
   }
 
   return elements
+}
+
+function convertDimension(
+  record: AltiumDimensionRecord,
+  index: number,
+): PcbFabricationNoteDimension | undefined {
+  const start = record.start
+  const end = record.end
+  if (!start || !end) return undefined
+
+  const deltaX = end.x - start.x
+  const deltaY = end.y - start.y
+  const lengthMils = Math.hypot(deltaX, deltaY)
+  if (lengthMils === 0) return undefined
+
+  const perpendicular = {
+    x: -deltaY / lengthMils,
+    y: deltaX / lengthMils,
+  }
+  const lineAnchor = record.dimensionLineAnchor ?? start
+  const signedOffsetMils =
+    (lineAnchor.x - start.x) * perpendicular.x +
+    (lineAnchor.y - start.y) * perpendicular.y
+  const offsetSign = signedOffsetMils < 0 ? -1 : 1
+
+  return {
+    type: "pcb_fabrication_note_dimension",
+    pcb_fabrication_note_dimension_id: `pcb_fabrication_note_dimension_altium_${index}`,
+    pcb_component_id: BOARD_GRAPHICS_COMPONENT_ID,
+    layer: mapMechanicalLayer(getLayer(record)),
+    from: toMillimeterPoint(start),
+    to: toMillimeterPoint(end),
+    text: getDimensionText(record, lengthMils),
+    offset_distance: milsToMillimeters(Math.abs(signedOffsetMils)),
+    offset_direction: {
+      x: perpendicular.x * offsetSign,
+      y: perpendicular.y * offsetSign,
+    },
+    font: "tscircuit2024",
+    font_size: milsToMillimeters(record.textHeightMils ?? 50),
+    arrow_size: milsToMillimeters(getMeasurement(record, "ARROWSIZE") ?? 40),
+    color: "#ec4899",
+  }
+}
+
+function getDimensionText(
+  record: AltiumDimensionRecord,
+  measuredDistanceMils: number,
+): string {
+  const explicitText = record.getDecoded("TEXTFORMAT")?.trim()
+  if (explicitText && explicitText !== "<>") return explicitText
+
+  const precision = Math.min(Math.max(record.precision ?? 2, 0), 6)
+  const normalizedUnit = record.unit?.toUpperCase() ?? "MILS"
+  let amount = measuredDistanceMils
+  let unitLabel = "mil"
+  if (normalizedUnit.includes("MILLIMETER")) {
+    amount *= MILS_TO_MILLIMETERS
+    unitLabel = "mm"
+  } else if (normalizedUnit.includes("CENTIMETER")) {
+    amount *= MILS_TO_MILLIMETERS / 10
+    unitLabel = "cm"
+  } else if (normalizedUnit.includes("INCH")) {
+    amount /= 1000
+    unitLabel = "in"
+  }
+  return `${record.prefix ?? ""}${amount.toFixed(precision)}${record.suffix ?? ` ${unitLabel}`}`
+}
+
+function mapMechanicalLayer(layer: string | undefined): "top" | "bottom" {
+  return normalizeLayer(layer).includes("BOTTOM") ? "bottom" : "top"
 }
 
 interface CourtyardPath {
@@ -372,6 +466,32 @@ function convertTrack(
       { route_type: "wire", ...toMillimeterPoint(start), width, layer },
       { route_type: "wire", ...toMillimeterPoint(end), width, layer },
     ],
+  }
+}
+
+function convertCopperText(
+  record: AltiumTextRecord,
+  index: number,
+): PcbCopperText | undefined {
+  const text =
+    decodeAltiumWideString(record.getDecoded("WIDESTRING")) ||
+    record.getDecoded("TEXT") ||
+    record.text
+  if (!record.position || !text) return undefined
+  const layer = mapAltiumCopperLayer(record.layer)
+  if (!layer) return undefined
+  return {
+    type: "pcb_copper_text",
+    pcb_copper_text_id: `pcb_copper_text_altium_${index}`,
+    pcb_component_id: pcbComponentIdForRecord(record),
+    text,
+    font: "tscircuit2024",
+    font_size: milsToMillimeters(record.heightMils ?? 30),
+    anchor_position: toMillimeterPoint(record.position),
+    anchor_alignment: mapTextAnchor(record.justification),
+    ccw_rotation: record.rotation,
+    layer,
+    is_mirrored: record.mirrored,
   }
 }
 
