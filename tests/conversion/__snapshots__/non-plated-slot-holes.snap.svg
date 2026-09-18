@@ -1,0 +1,14 @@
+<svg width="1624" height="800" viewBox="0 0 1624 800" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-label="Non-plated PCB slots: altiumts source on left, Circuit JSON on right" role="img">
+  <g transform="translate(0, 0) scale(1.2461059190031152, 1.8099547511312217) translate(0, 0)">
+    <title>Altium non-plated slots source</title>
+  <rect width="100%" height="100%" fill="#071a16"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <polygon data-record="BoardOutline" points="21,421 621,421 621,21 21,21 21,421" fill="#123d32" stroke="#6ee7b7" stroke-width="3"/>
+    <g data-record="Pad" data-layer="MULTILAYER" data-pad-name="NPTH1" data-pad-shape="ROUND" data-pad-stack-layer="0" data-plated="false"><circle cx="221" cy="221" r="60" fill="#22c55e" stroke="#111827" stroke-width="1"/><rect data-hole-shape="SLOT" x="171" y="201" width="100" height="40" rx="20" ry="20" fill="#111827" stroke="#f8fafc" stroke-width="1.5"/></g>
+    <g data-record="Pad" data-layer="MULTILAYER" data-pad-name="NPTH2" data-pad-shape="ROUND" data-pad-stack-layer="0" data-plated="false"><circle cx="421" cy="221" r="60" fill="#22c55e" stroke="#111827" stroke-width="1"/><rect data-hole-shape="SLOT" x="371" y="201" width="100" height="40" rx="20" ry="20" fill="#111827" stroke="#f8fafc" stroke-width="1.5" transform="rotate(-45 421 221)"/></g>
+  </g>
+  </g>
+  <g transform="translate(824, 133.33333333333331)">
+    <style></style><rect class="boundary" x="0" y="0" fill="#000" width="800" height="533.3333333333334" data-type="pcb_background" data-pcb-layer="global"/><rect class="pcb-boundary" fill="none" stroke="#fff" stroke-width="0.3" x="65.78947368421046" y="43.859649122807014" width="668.421052631579" height="445.61403508771934" data-type="pcb_boundary" data-pcb-layer="global"/><path class="pcb-board" d="M 65.78947368421046 489.47368421052636 L 734.2105263157894 489.47368421052636 L 734.2105263157894 43.859649122807014 L 65.78947368421046 43.859649122807014 L 65.78947368421046 489.47368421052636 Z" fill="none" stroke="rgba(255, 255, 255, 0.5)" stroke-width="4.385964912280702" data-type="pcb_board" data-pcb-layer="board"/><path class="pcb-hole" fill="#FF26E2" d="M255.17543859649118,244.3859649122807 h66.8421052631579 a22.280701754385966,22.280701754385966 0 0 1 0,44.56140350877193 h-66.8421052631579 a22.280701754385966,22.280701754385966 0 0 1 0,-44.56140350877193 z" data-type="pcb_hole" data-pcb-layer="drill"/><path class="pcb-hole" fill="#FF26E2" d="M-33.42105263157895,-22.280701754385966 h66.8421052631579 a22.280701754385966,22.280701754385966 0 0 1 0,44.56140350877193 h-66.8421052631579 a22.280701754385966,22.280701754385966 0 0 1 0,-44.56140350877193 z" transform="translate(511.4035087719298 266.6666666666667) rotate(-45)" data-type="pcb_hole" data-pcb-layer="drill"/>
+  </g>
+</svg>
