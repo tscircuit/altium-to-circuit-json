@@ -3,6 +3,11 @@ import { parseAltiumSchDoc } from "altiumts"
 import type { SchematicNetLabel, SchematicText } from "circuit-json"
 import { any_circuit_element } from "circuit-json"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
+import { getAltiumSchematicFontSizePoints } from "../../lib/schematic/schematic-font-size"
+import {
+  getAltiumSheetDimensions,
+  getPageFitScale,
+} from "../../lib/schematic/sheet-layout"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
 
@@ -40,7 +45,7 @@ test("inline Altium net labels render as schematic text", () => {
       (text) =>
         text.anchor === "center" &&
         text.color === "rgb(132, 0, 0)" &&
-        text.font_size === 0.18 &&
+        text.font_size === 1 &&
         text.rotation === 0 &&
         text.source_trace_id === "source_trace_altium_0" &&
         text.schematic_text_id.startsWith("schematic_inline_net_label_altium_"),
@@ -155,9 +160,12 @@ test("sheet 12 preserves inline and anchored Altium labels independently", async
   const source = await readReferenceBytes(
     `${TI_TMDS62LEVM_FIXTURE_NAME}/12.SchDoc`,
   )
-  const circuitJson = convertAltiumSchDocToCircuitJson(
-    parseAltiumSchDoc(source),
+  const document = parseAltiumSchDoc(source)
+  const circuitJson = convertAltiumSchDocToCircuitJson(document)
+  const sheetRecord = document.records.find(
+    (record) => record.recordKind === "31",
   )
+  const scale = getPageFitScale(getAltiumSheetDimensions(sheetRecord))
   const schematicTexts = circuitJson.filter(
     (element): element is SchematicText => element.type === "schematic_text",
   )
@@ -174,6 +182,20 @@ test("sheet 12 preserves inline and anchored Altium labels independently", async
   const inlineDrain2Labels = schematicTexts.filter(
     (text) => text.text === "DRAIN2",
   )
+  const getSourceFontSize = (text: SchematicText): number => {
+    const recordIndex = Number(text.schematic_text_id.split("_").at(-1))
+    const record = document.records[recordIndex]
+    if (!record) {
+      throw new Error(`Missing source record for ${text.schematic_text_id}`)
+    }
+    return (
+      getAltiumSchematicFontSizePoints({
+        fallbackPoints: 9,
+        record,
+        sheetRecord,
+      }) * scale
+    )
+  }
 
   expect(inlineUsbcLabels).toHaveLength(4)
   expect(inlineUsbcLabels.map((text) => text.schematic_text_id)).toEqual([
@@ -187,11 +209,12 @@ test("sheet 12 preserves inline and anchored Altium labels independently", async
       (text) =>
         ["center", "left", "right"].includes(text.anchor) &&
         text.color === "rgb(132, 0, 0)" &&
-        text.font_size >= 0.1 &&
-        text.font_size <= 0.18 &&
         Boolean(text.source_trace_id),
     ),
   ).toBe(true)
+  expect(inlineUsbcLabels.map((text) => text.font_size)).toEqual(
+    inlineUsbcLabels.map(getSourceFontSize),
+  )
   expect(anchoredUsbcLabels).toHaveLength(2)
   expect(
     anchoredUsbcLabels.map((label) => label.schematic_net_label_id),
@@ -217,10 +240,12 @@ test("sheet 12 preserves inline and anchored Altium labels independently", async
       (text) =>
         text.color === "rgb(132, 0, 0)" &&
         text.anchor === "center" &&
-        text.font_size === 0.1 &&
         Boolean(text.source_trace_id),
     ),
   ).toBe(true)
+  expect(inlineDrain2Labels.map((text) => text.font_size)).toEqual(
+    inlineDrain2Labels.map(getSourceFontSize),
+  )
   expect(
     circuitJson.every(
       (element) => any_circuit_element.safeParse(element).success,

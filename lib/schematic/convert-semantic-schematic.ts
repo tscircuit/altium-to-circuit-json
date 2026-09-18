@@ -49,6 +49,7 @@ import {
   segmentKey,
   uniqueStrings,
 } from "./ids"
+import { getAltiumSchematicFontSizePoints } from "./schematic-font-size"
 import {
   classifyComponent,
   getMosfetVariant,
@@ -128,8 +129,7 @@ const CARDINAL_DIRECTIONS: readonly CardinalDirection[] = [
 const SYMBOL_CATALOG = symbols as Record<string, SchSymbol | undefined>
 const SYMBOL_NAMES = Object.keys(SYMBOL_CATALOG)
 const INLINE_NET_LABEL_COLOR = "rgb(132, 0, 0)"
-const DEFAULT_INLINE_NET_LABEL_FONT_SIZE = 0.18
-const MIN_INLINE_NET_LABEL_FONT_SIZE = 0.1
+const REFERENCE_INLINE_NET_LABEL_FONT_SIZE = 0.18
 const INLINE_NET_LABEL_CHARACTER_WIDTH = 0.12
 const INLINE_NET_LABEL_HORIZONTAL_PADDING = 0.12
 
@@ -187,6 +187,9 @@ function convertComponents(params: {
   const { convertedPorts, document, elements, handledRecords, options } = params
   const documentIndex = getSchematicDocumentIndex(document)
   const sourceComponentIdByDesignator = new Map<string, string>()
+  const sheetRecord = document.records.find(
+    (record) => record.recordKind === "31",
+  )
 
   for (const [componentIndex, componentRecord] of document.records.entries()) {
     if (componentRecord.recordKind !== "1") continue
@@ -214,17 +217,24 @@ function convertComponents(params: {
         }),
     )
 
+    const designatorRecord = findOwnedTextRecord(
+      ownedRecords,
+      "34",
+      "Designator",
+    )
     const designator =
-      findOwnedText(ownedRecords, "34", "Designator") ??
+      designatorRecord?.getDecoded("TEXT") ??
       componentRecord.getDecoded("DESIGNATOR") ??
       `U${componentIndex}`
     // Altium libraries commonly store the human-readable component value in
     // the named `Value` parameter, while `Comment` may contain a manufacturer
     // part number (or another library-specific description). Prefer the
     // explicit value field and retain the older fallbacks for simpler files.
+    const valueRecord =
+      findOwnedTextRecord(ownedRecords, "41", "Value") ??
+      findOwnedTextRecord(ownedRecords, "41", "Comment")
     const value =
-      findOwnedText(ownedRecords, "41", "Value")?.trim() ||
-      findOwnedText(ownedRecords, "41", "Comment")?.trim() ||
+      valueRecord?.getDecoded("TEXT")?.trim() ||
       componentRecord.getDecoded("COMMENT")?.trim() ||
       componentRecord.getDecoded("DESIGNITEMID")?.trim() ||
       componentRecord.getDecoded("LIBREFERENCE")?.trim() ||
@@ -265,6 +275,7 @@ function convertComponents(params: {
         pin,
         pinIndex,
         schematicComponentId,
+        sheetRecord,
         sourceComponentId,
         visibleSymbolLabels,
       }),
@@ -326,6 +337,12 @@ function convertComponents(params: {
         createComponentText({
           anchor: "bottom_left",
           component: schematicComponent,
+          fontSize: getCircuitJsonFontSizeForRecord({
+            fallbackPoints: 9,
+            record: designatorRecord ?? componentRecord,
+            scale: options.scale,
+            sheetRecord,
+          }),
           id: `schematic_component_designator_altium_${componentIndex}`,
           position: {
             x: center.x - size.width / 2,
@@ -339,6 +356,12 @@ function convertComponents(params: {
           createComponentText({
             anchor: "top_left",
             component: schematicComponent,
+            fontSize: getCircuitJsonFontSizeForRecord({
+              fallbackPoints: 9,
+              record: valueRecord ?? componentRecord,
+              scale: options.scale,
+              sheetRecord,
+            }),
             id: `schematic_component_value_altium_${componentIndex}`,
             position: {
               x: center.x - size.width / 2,
@@ -358,6 +381,7 @@ function convertComponentPin(params: {
   pin: AltiumRecord
   pinIndex: number
   schematicComponentId: string
+  sheetRecord: AltiumRecord | undefined
   sourceComponentId: string
   visibleSymbolLabels: Set<string>
 }): ConvertedPort {
@@ -367,6 +391,7 @@ function convertComponentPin(params: {
     pin,
     pinIndex,
     schematicComponentId,
+    sheetRecord,
     sourceComponentId,
     visibleSymbolLabels,
   } = params
@@ -406,10 +431,21 @@ function convertComponentPin(params: {
     (pinConglomerate & 0x08) !== 0 ||
     visibleSymbolLabels.has(normalizedName) ||
     visibleSymbolLabels.has(functionalName)
+  const displayPinLabelFontSize = getCircuitJsonFontSizeForRecord({
+    fallbackPoints: 6,
+    record: pin,
+    scale: options.scale,
+    sheetRecord,
+  })
   const schematicPort: SchematicPort = {
     type: "schematic_port",
     center: scalePoint(terminalPoint, options.scale),
-    ...(showName && name ? { display_pin_label: name } : {}),
+    ...(showName && name
+      ? {
+          display_pin_label: name,
+          display_pin_label_font_size: displayPinLabelFontSize,
+        }
+      : {}),
     distance_from_component_edge: pinLength * options.scale,
     facing_direction: direction,
     is_connected: false,
@@ -573,16 +609,17 @@ function parseFiniteComponentValue({
 function createComponentText(params: {
   anchor: SchematicText["anchor"]
   component: SchematicComponent
+  fontSize: number
   id: string
   position: AltiumPoint
   text: string
 }): SchematicText {
-  const { anchor, component, id, position, text } = params
+  const { anchor, component, fontSize, id, position, text } = params
   return {
     type: "schematic_text",
     anchor,
     color: "#006464",
-    font_size: 0.18,
+    font_size: fontSize,
     position,
     rotation: 0,
     schematic_component_id: component.schematic_component_id,
@@ -590,6 +627,26 @@ function createComponentText(params: {
     schematic_text_id: id,
     text,
   }
+}
+
+function getCircuitJsonFontSizeForRecord({
+  fallbackPoints,
+  record,
+  scale,
+  sheetRecord,
+}: {
+  fallbackPoints: number
+  record: AltiumRecord
+  scale: number
+  sheetRecord: AltiumRecord | undefined
+}): number {
+  return (
+    getAltiumSchematicFontSizePoints({
+      fallbackPoints,
+      record,
+      sheetRecord,
+    }) * scale
+  )
 }
 
 /**
@@ -1274,7 +1331,7 @@ function createInlineNetLabelText(params: {
   const direction = getInlineNetLabelDirection(record, location, connectedWires)
   const scaledLocation = scalePoint(location, options.scale)
   const fontSize = getInlineNetLabelFontSize(record, document, options.scale)
-  const fontScale = fontSize / DEFAULT_INLINE_NET_LABEL_FONT_SIZE
+  const fontScale = fontSize / REFERENCE_INLINE_NET_LABEL_FONT_SIZE
   const textWidth =
     (name.length * INLINE_NET_LABEL_CHARACTER_WIDTH +
       INLINE_NET_LABEL_HORIZONTAL_PADDING) *
@@ -1326,21 +1383,17 @@ function getInlineNetLabelFontSize(
   document: AltiumSchDoc,
   scale: number,
 ): number {
-  const fontId = Math.max(
-    Math.round(Number(record.getCaseInsensitive("FONTID") ?? 1)),
-    1,
-  )
   const sheetRecord = document.records.find(
     (candidate) => candidate.recordKind === "31",
   )
-  const sourceFontSize = Number(
-    sheetRecord?.getCaseInsensitive(`SIZE${fontId}`) ??
-      DEFAULT_INLINE_NET_LABEL_FONT_SIZE / scale,
-  )
-  return Math.min(
-    DEFAULT_INLINE_NET_LABEL_FONT_SIZE,
-    Math.max(MIN_INLINE_NET_LABEL_FONT_SIZE, sourceFontSize * scale),
-  )
+  const fallbackPoints =
+    record.recordKind === "17" ? 10 : record.recordKind === "18" ? 8 : 9
+  return getCircuitJsonFontSizeForRecord({
+    fallbackPoints,
+    record,
+    scale,
+    sheetRecord,
+  })
 }
 
 function getInlineNetLabelDirection(
@@ -1812,13 +1865,19 @@ function findOwnedText(
   recordKind: string,
   name: string,
 ): string | undefined {
-  return records
-    .find(
-      (record) =>
-        record.recordKind === recordKind &&
-        record.getDecoded("NAME")?.toLowerCase() === name.toLowerCase(),
-    )
-    ?.getDecoded("TEXT")
+  return findOwnedTextRecord(records, recordKind, name)?.getDecoded("TEXT")
+}
+
+function findOwnedTextRecord(
+  records: AltiumRecord[],
+  recordKind: string,
+  name: string,
+): AltiumRecord | undefined {
+  return records.find(
+    (record) =>
+      record.recordKind === recordKind &&
+      record.getDecoded("NAME")?.toLowerCase() === name.toLowerCase(),
+  )
 }
 
 function isOwnedRecordVisible(

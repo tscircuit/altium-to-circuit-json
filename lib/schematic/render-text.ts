@@ -12,6 +12,7 @@ import {
   getRectangle,
   scalePoint,
 } from "./coordinates"
+import { getAltiumSchematicFontSizePoints } from "./schematic-font-size"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "./sheet-layout"
 
 export function renderTextRecord({
@@ -225,14 +226,11 @@ export function getFontSize(
   record: AltiumRecord,
   context: SchematicContext,
 ): number {
-  const fontId = Math.max(
-    Math.round(Number(record.getCaseInsensitive("FONTID") ?? 1)),
-    1,
-  )
-  return Math.max(
-    Number(context.sheetRecord?.getCaseInsensitive(`SIZE${fontId}`) ?? 9),
-    1,
-  )
+  return getAltiumSchematicFontSizePoints({
+    fallbackPoints: 9,
+    record,
+    sheetRecord: context.sheetRecord,
+  })
 }
 
 export function getFontFamily(
