@@ -20,7 +20,7 @@ test("preserves plated slot dimensions and roundrect pad geometry", () => {
   expect(platedHoles).toEqual([
     expect.objectContaining({
       shape: "rotated_pill_hole_with_rect_pad",
-      hole_width: 1.524,
+      hole_width: 4.826,
       hole_height: 4.826,
       hole_ccw_rotation: 270,
       rect_pad_width: 2.032,

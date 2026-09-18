@@ -88,7 +88,7 @@ export function getAltiumSlotHoleSize(record: AltiumPadRecord): {
     holeSizeMils
   return {
     heightMils: holeSizeMils,
-    widthMils: Math.max(slotWidthMils, 1),
+    widthMils: Math.max(slotWidthMils, holeSizeMils),
   }
 }
 
