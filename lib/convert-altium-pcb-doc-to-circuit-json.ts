@@ -18,6 +18,7 @@ import {
 import type {
   AnyCircuitElement,
   LayerRef,
+  PCBKeepoutCircle,
   PcbBoard,
   PcbComponent,
   PcbCopperText,
@@ -54,6 +55,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeComponents?: boolean
   includeCopperAreas?: boolean
   includeCourtyards?: boolean
+  includeKeepouts?: boolean
   includeDimensions?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
@@ -117,6 +119,20 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   for (const [index, record] of document.records.entries()) {
+    if (
+      record instanceof AltiumArcRecord &&
+      isKeepoutLayer(record.layer) &&
+      options.includeKeepouts !== false
+    ) {
+      const keepout = convertCircularKeepout({
+        record,
+        recordIndex: index,
+        document,
+      })
+      if (keepout) elements.push(keepout)
+      continue
+    }
+
     if (
       record instanceof AltiumDimensionRecord &&
       options.includeDimensions !== false
@@ -191,6 +207,43 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   return elements
+}
+
+function convertCircularKeepout({
+  record,
+  recordIndex,
+  document,
+}: {
+  record: AltiumArcRecord
+  recordIndex: number
+  document: AltiumPcbDocument
+}): PCBKeepoutCircle | undefined {
+  const center = record.center
+  const radiusMils = record.radiusMils
+  const rawSweep = record.endAngle - record.startAngle
+  const isFullCircle = rawSweep === 0 || Math.abs(rawSweep) >= 360
+  if (!center || !radiusMils || !isFullCircle) return undefined
+
+  return {
+    type: "pcb_keepout",
+    pcb_keepout_id: `pcb_keepout_altium_arc_${recordIndex}`,
+    shape: "circle",
+    center: toMillimeterPoint(center),
+    radius: milsToMillimeters(radiusMils + (record.widthMils ?? 0) / 2),
+    layers: getCopperLayers(document),
+    description: "Altium circular keepout",
+  }
+}
+
+function getCopperLayers(document: AltiumPcbDocument): LayerRef[] {
+  if (!document.board) return ["top", "bottom"]
+  const layers: LayerRef[] = getPcbLayerStack(document.board).entries.flatMap(
+    (entry) => {
+      const layer = mapAltiumCopperLayer(entry.name ?? entry.layerId)
+      return layer ? [layer] : []
+    },
+  )
+  return layers.length > 0 ? [...new Set(layers)] : ["top", "bottom"]
 }
 
 function convertDimension(
@@ -897,6 +950,10 @@ function mapTextAnchor(
 function isOverlayLayer(layer: string | undefined): boolean {
   const normalized = normalizeLayer(layer)
   return normalized === "TOPOVERLAY" || normalized === "BOTTOMOVERLAY"
+}
+
+function isKeepoutLayer(layer: string | undefined): boolean {
+  return normalizeLayer(layer) === "KEEPOUT"
 }
 
 function isCourtyardLayer(layer: string | undefined): boolean {
