@@ -16,9 +16,9 @@ interface AltiumPadGeometry {
 }
 
 interface AltiumPadHoleGeometry {
+  ccwRotationDegrees: number
   offsetXMils: number
   offsetYMils: number
-  rotation: number
 }
 
 export function getAltiumPadGeometry(
@@ -69,11 +69,13 @@ export function getAltiumPadHoleGeometry(
   const radians = (record.rotation * Math.PI) / 180
 
   return {
+    ccwRotationDegrees: normalizeAltiumAngle(
+      record.rotation + record.holeRotation,
+    ),
     offsetXMils:
       offsetXMils * Math.cos(radians) - offsetYMils * Math.sin(radians),
     offsetYMils:
       offsetXMils * Math.sin(radians) + offsetYMils * Math.cos(radians),
-    rotation: normalizeAltiumAngle(record.rotation + record.holeRotation),
   }
 }
 

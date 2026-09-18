@@ -604,7 +604,8 @@ function convertPad(
       const holeWidth = milsToMillimeters(slotHoleSize.widthMils)
       const holeHeight = milsToMillimeters(slotHoleSize.heightMils)
       if (isRectangularShape(shape)) {
-        const rotated = holeGeometry.rotation !== 0 || record.rotation !== 0
+        const rotated =
+          holeGeometry.ccwRotationDegrees !== 0 || record.rotation !== 0
         return {
           type: "pcb_plated_hole",
           pcb_plated_hole_id: `pcb_plated_hole_${id}`,
@@ -615,7 +616,9 @@ function convertPad(
           pad_shape: "rect",
           hole_width: holeWidth,
           hole_height: holeHeight,
-          ...(rotated ? { hole_ccw_rotation: holeGeometry.rotation } : {}),
+          ...(rotated
+            ? { hole_ccw_rotation: holeGeometry.ccwRotationDegrees }
+            : {}),
           rect_pad_width: width,
           rect_pad_height: height,
           rect_border_radius: cornerRadius,
@@ -635,7 +638,7 @@ function convertPad(
         outer_height: height,
         hole_width: holeWidth,
         hole_height: holeHeight,
-        ccw_rotation: holeGeometry.rotation,
+        ccw_rotation: holeGeometry.ccwRotationDegrees,
         x,
         y,
         layers,
