@@ -20,6 +20,7 @@ import type {
   LayerRef,
   PcbBoard,
   PcbComponent,
+  PcbCopperText,
   PcbCourtyardOutline,
   PcbCutout,
   PcbFabricationNoteDimension,
@@ -29,7 +30,6 @@ import type {
   PcbSilkscreenPath,
   PcbSilkscreenRect,
   PcbSilkscreenText,
-  PcbCopperText,
   PcbSmtPad,
   PcbTrace,
   PcbVia,
@@ -45,6 +45,7 @@ import { mapAltiumCopperLayer } from "./pcb/map-altium-copper-layer"
 import { stitchConnectedAltiumPaths } from "./pcb/stitch-connected-paths"
 
 const MILS_TO_MILLIMETERS = 0.0254
+const ALTIUM_SLOT_HOLE_TYPE = 2
 const BOARD_ID = "pcb_board_altium"
 const BOARD_GRAPHICS_COMPONENT_ID = "pcb_component_altium_board_graphics"
 
@@ -554,7 +555,7 @@ function convertPad(
     const slotLengthMils = getMeasurement(record, "SLOTLENGTH")
     const holeWidthMils = record.holeWidthMils ?? record.holeSizeMils
     const isSlot =
-      record.getNumber("HOLETYPE") === 2 ||
+      record.getNumber("HOLETYPE") === ALTIUM_SLOT_HOLE_TYPE ||
       normalizeShape(record.holeType).includes("SLOT") ||
       (slotLengthMils ?? 0) > (record.holeSizeMils ?? 0) ||
       (holeWidthMils ?? 0) > (record.holeSizeMils ?? 0)

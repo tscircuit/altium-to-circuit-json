@@ -8,14 +8,14 @@ import {
 const TOP_LAYER_ORDINAL = 0
 const BOTTOM_LAYER_ORDINAL = 31
 
-export interface AltiumPadGeometry {
+interface AltiumPadGeometry {
   cornerRadiusMils: number | undefined
   heightMils: number
   shape: string
   widthMils: number
 }
 
-export interface AltiumPadHoleGeometry {
+interface AltiumPadHoleGeometry {
   offsetXMils: number
   offsetYMils: number
   rotation: number
@@ -82,13 +82,13 @@ export function getAltiumSlotHoleSize(record: AltiumPadRecord): {
   widthMils: number
 } {
   const holeSizeMils = Math.max(record.holeSizeMils ?? 1, 1)
-  const slotWidthMils =
+  const slotLengthMils =
     parseAltiumMeasurementToMils(record.getCaseInsensitive("SLOTLENGTH")) ??
     record.holeWidthMils ??
     holeSizeMils
   return {
     heightMils: holeSizeMils,
-    widthMils: Math.max(slotWidthMils, holeSizeMils),
+    widthMils: Math.max(slotLengthMils, holeSizeMils),
   }
 }
 

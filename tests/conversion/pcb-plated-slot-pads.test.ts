@@ -11,7 +11,7 @@ const platedSlotPcbDoc = parseAltiumPcbDoc(
   ].join("\n"),
 )
 
-test("preserves plated slot dimensions and roundrect pad geometry", () => {
+test("preserves plated slot, hole offset, and pad geometry", () => {
   const circuitJson = convertAltiumPcbDocToCircuitJson(platedSlotPcbDoc)
   const platedHoles = circuitJson.filter(
     (element) => element.type === "pcb_plated_hole",
