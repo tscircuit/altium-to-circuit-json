@@ -683,6 +683,33 @@ function convertPad(
           layers,
         } as PcbPlatedHole
       }
+      if (holeOffsetX !== 0 || holeOffsetY !== 0) {
+        const rotated =
+          holeGeometry.ccwRotationDegrees !== 0 || record.rotation !== 0
+        return {
+          type: "pcb_plated_hole",
+          pcb_plated_hole_id: `pcb_plated_hole_${id}`,
+          shape: rotated
+            ? "rotated_pill_hole_with_rect_pad"
+            : "pill_hole_with_rect_pad",
+          hole_shape: rotated ? "rotated_pill" : "pill",
+          pad_shape: "rect",
+          hole_width: holeWidth,
+          hole_height: holeHeight,
+          ...(rotated
+            ? { hole_ccw_rotation: holeGeometry.ccwRotationDegrees }
+            : {}),
+          rect_pad_width: width,
+          rect_pad_height: height,
+          rect_border_radius: Math.min(width, height) / 2,
+          ...(rotated ? { rect_ccw_rotation: record.rotation } : {}),
+          hole_offset_x: holeOffsetX,
+          hole_offset_y: holeOffsetY,
+          x,
+          y,
+          layers,
+        } as PcbPlatedHole
+      }
       return {
         type: "pcb_plated_hole",
         pcb_plated_hole_id: `pcb_plated_hole_${id}`,
@@ -741,6 +768,25 @@ function convertPad(
     }
 
     if (shape === "ROUND" || shape === "CIRCLE" || shape === "OVAL") {
+      if (holeOffsetX !== 0 || holeOffsetY !== 0) {
+        return {
+          type: "pcb_plated_hole",
+          pcb_plated_hole_id: `pcb_plated_hole_${id}`,
+          shape: "circular_hole_with_rect_pad",
+          hole_shape: "circle",
+          pad_shape: "rect",
+          hole_diameter: Math.max(holeDiameter, MILS_TO_MILLIMETERS),
+          rect_pad_width: width,
+          rect_pad_height: height,
+          rect_border_radius: Math.min(width, height) / 2,
+          rect_ccw_rotation: record.rotation,
+          hole_offset_x: holeOffsetX,
+          hole_offset_y: holeOffsetY,
+          x,
+          y,
+          layers,
+        }
+      }
       if (Math.abs(width - height) >= 0.0001) {
         return {
           type: "pcb_plated_hole",

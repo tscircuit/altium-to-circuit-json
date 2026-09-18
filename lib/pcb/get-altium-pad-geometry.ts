@@ -24,7 +24,7 @@ interface AltiumPadHoleGeometry {
 export function getAltiumPadGeometry(
   record: AltiumPadRecord,
 ): AltiumPadGeometry | undefined {
-  const layerOrdinal = getPadLayerOrdinal(record)
+  const layerOrdinal = getPadStackLayerOrdinal(record)
   const isBottomLayer = layerOrdinal === BOTTOM_LAYER_ORDINAL
   const size = isBottomLayer ? (record.bottomSize ?? record.size) : record.size
   if (!size) return undefined
@@ -57,7 +57,7 @@ export function getAltiumPadGeometry(
 export function getAltiumPadHoleGeometry(
   record: AltiumPadRecord,
 ): AltiumPadHoleGeometry {
-  const layerOrdinal = getPadLayerOrdinal(record)
+  const layerOrdinal = getPadStackLayerOrdinal(record)
   const offsetXMils = getPadMeasurement({
     record,
     keys: [`LAYER${layerOrdinal}HOLEXOFFSET`, `PADXOFFSET${layerOrdinal}`],
@@ -97,11 +97,19 @@ export function getAltiumSlotHoleSize(record: AltiumPadRecord): {
   }
 }
 
-function getPadLayerOrdinal(record: AltiumPadRecord): number {
-  const normalizedLayer = record.layer?.replaceAll(" ", "").toUpperCase()
-  return normalizedLayer === "BOTTOM" || normalizedLayer === "BOTTOMLAYER"
-    ? BOTTOM_LAYER_ORDINAL
-    : TOP_LAYER_ORDINAL
+function getPadStackLayerOrdinal(record: AltiumPadRecord): number {
+  const normalizedLayer = (record.layer ?? "")
+    .replace(/[\s_.-]+/gu, "")
+    .toUpperCase()
+  if (normalizedLayer === "BOTTOM" || normalizedLayer === "BOTTOMLAYER") {
+    return BOTTOM_LAYER_ORDINAL
+  }
+
+  const innerLayer = /^(?:MIDLAYER|MID|INTERNALPLANE)(\d+)$/u.exec(
+    normalizedLayer,
+  )
+  if (!innerLayer?.[1]) return TOP_LAYER_ORDINAL
+  return Math.min(Math.max(Number(innerLayer[1]), 1), 30)
 }
 
 function getPadMeasurement({
