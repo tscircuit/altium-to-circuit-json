@@ -37,11 +37,12 @@ export function getAltiumPadGeometry(
     ?.toUpperCase()
   // Conventional shapes use SHAPE/BOTTOMSHAPE; only ROUNDRECT is an override.
   const shape = alternateShape === "ROUNDRECT" ? alternateShape : defaultShape
-  const cornerRadiusPercent = Number(
-    record.getCaseInsensitive(`LAYER${layerOrdinal}CORNERRADIUS`),
-  )
+  const cornerRadiusPercent =
+    shape === "ROUNDRECT"
+      ? Number(record.getCaseInsensitive(`LAYER${layerOrdinal}CORNERRADIUS`))
+      : undefined
   const cornerRadiusMils =
-    shape === "ROUNDRECT" && Number.isFinite(cornerRadiusPercent)
+    cornerRadiusPercent !== undefined && Number.isFinite(cornerRadiusPercent)
       ? (Math.min(size.width, size.height) * cornerRadiusPercent) / 200
       : undefined
 
@@ -66,16 +67,18 @@ export function getAltiumPadHoleGeometry(
     keys: [`LAYER${layerOrdinal}HOLEYOFFSET`, `PADYOFFSET${layerOrdinal}`],
   })
   // Altium stores hole offsets and rotation in the pad's local coordinates.
-  const radians = (record.rotation * Math.PI) / 180
+  const ccwPadRotationRadians = (record.rotation * Math.PI) / 180
 
   return {
     ccwRotationDegrees: normalizeAltiumAngle(
       record.rotation + record.holeRotation,
     ),
     offsetXMils:
-      offsetXMils * Math.cos(radians) - offsetYMils * Math.sin(radians),
+      offsetXMils * Math.cos(ccwPadRotationRadians) -
+      offsetYMils * Math.sin(ccwPadRotationRadians),
     offsetYMils:
-      offsetXMils * Math.sin(radians) + offsetYMils * Math.cos(radians),
+      offsetXMils * Math.sin(ccwPadRotationRadians) +
+      offsetYMils * Math.cos(ccwPadRotationRadians),
   }
 }
 
@@ -109,8 +112,10 @@ function getPadMeasurement({
   keys: readonly string[]
 }): number {
   for (const key of keys) {
-    const value = parseAltiumMeasurementToMils(record.getCaseInsensitive(key))
-    if (value !== undefined) return value
+    const measurementMils = parseAltiumMeasurementToMils(
+      record.getCaseInsensitive(key),
+    )
+    if (measurementMils !== undefined) return measurementMils
   }
   return 0
 }

@@ -625,9 +625,6 @@ function convertPad(
       ? undefined
       : milsToMillimeters(geometry.cornerRadiusMils)
   const holeDiameter = milsToMillimeters(record.holeSizeMils ?? 0)
-  const holeGeometry = getAltiumPadHoleGeometry(record)
-  const holeOffsetX = milsToMillimeters(holeGeometry.offsetXMils)
-  const holeOffsetY = milsToMillimeters(holeGeometry.offsetYMils)
   const shape = normalizeShape(geometry.shape)
   const id = `altium_${index}`
 
@@ -643,6 +640,9 @@ function convertPad(
   }
 
   if (record.behavior === "through-hole" || holeDiameter > 0) {
+    const holeGeometry = getAltiumPadHoleGeometry(record)
+    const holeOffsetX = milsToMillimeters(holeGeometry.offsetXMils)
+    const holeOffsetY = milsToMillimeters(holeGeometry.offsetYMils)
     const slotLengthMils = getMeasurement(record, "SLOTLENGTH")
     const holeWidthMils = record.holeWidthMils ?? record.holeSizeMils
     const isSlot =
