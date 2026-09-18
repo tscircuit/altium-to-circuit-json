@@ -51,6 +51,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeCourtyards?: boolean
   includeKeepouts?: boolean
   includeDimensions?: boolean
+  includeHiddenText?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
   includeTraces?: boolean
@@ -62,7 +63,6 @@ export function convertAltiumPcbDocToCircuitJson(
   options: ConvertAltiumPcbDocOptions = {},
 ): AnyCircuitElement[] {
   const elements: AnyCircuitElement[] = []
-
   if (options.includeBoardOutline !== false) {
     elements.push(createBoard(document))
     for (const [index, cutout] of document.boardGeometry.cutouts.entries()) {
@@ -175,6 +175,12 @@ export function convertAltiumPcbDocToCircuitJson(
     }
 
     if (record instanceof AltiumTextRecord) {
+      if (
+        options.includeHiddenText !== true &&
+        !isVisibleComponentText(record, document)
+      ) {
+        continue
+      }
       if (isCourtyardLayer(record.layer)) continue
       if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
@@ -201,6 +207,21 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   return elements
+}
+
+function isVisibleComponentText(
+  record: AltiumTextRecord,
+  document: AltiumPcbDocument,
+): boolean {
+  const component = document.getComponentForRecord(record)
+  if (!component) return true
+  if (record.isDesignator && component.getBoolean("NAMEON") === false) {
+    return false
+  }
+  if (record.isComment && component.getBoolean("COMMENTON") === false) {
+    return false
+  }
+  return true
 }
 
 function convertCircularKeepout({
