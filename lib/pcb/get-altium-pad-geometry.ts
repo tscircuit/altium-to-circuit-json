@@ -57,14 +57,14 @@ export function getAltiumPadHoleGeometry(
   record: AltiumPadRecord,
 ): AltiumPadHoleGeometry {
   const layerOrdinal = getPadLayerOrdinal(record)
-  const offsetXMils = getPadMeasurement(record, [
-    `LAYER${layerOrdinal}HOLEXOFFSET`,
-    `PADXOFFSET${layerOrdinal}`,
-  ])
-  const offsetYMils = getPadMeasurement(record, [
-    `LAYER${layerOrdinal}HOLEYOFFSET`,
-    `PADYOFFSET${layerOrdinal}`,
-  ])
+  const offsetXMils = getPadMeasurement({
+    record,
+    keys: [`LAYER${layerOrdinal}HOLEXOFFSET`, `PADXOFFSET${layerOrdinal}`],
+  })
+  const offsetYMils = getPadMeasurement({
+    record,
+    keys: [`LAYER${layerOrdinal}HOLEYOFFSET`, `PADYOFFSET${layerOrdinal}`],
+  })
   // Altium stores hole offsets and rotation in the pad's local coordinates.
   const radians = (record.rotation * Math.PI) / 180
 
@@ -99,10 +99,13 @@ function getPadLayerOrdinal(record: AltiumPadRecord): number {
     : TOP_LAYER_ORDINAL
 }
 
-function getPadMeasurement(
-  record: AltiumPadRecord,
-  keys: readonly string[],
-): number {
+function getPadMeasurement({
+  record,
+  keys,
+}: {
+  record: AltiumPadRecord
+  keys: readonly string[]
+}): number {
   for (const key of keys) {
     const value = parseAltiumMeasurementToMils(record.getCaseInsensitive(key))
     if (value !== undefined) return value
