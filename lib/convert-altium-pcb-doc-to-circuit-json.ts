@@ -34,6 +34,7 @@ import type {
 import { convertAltiumCopperAreas } from "./pcb/convert-altium-copper-areas"
 import {
   getAltiumPadGeometry,
+  getAltiumPadHoleGeometry,
   getAltiumSlotHoleSize,
 } from "./pcb/get-altium-pad-geometry"
 import { getPreferredPcbBoardOutline } from "./pcb/get-board-outline"
@@ -412,6 +413,9 @@ function convertPad(
       ? undefined
       : milsToMillimeters(geometry.cornerRadiusMils)
   const holeDiameter = milsToMillimeters(record.holeSizeMils ?? 0)
+  const holeGeometry = getAltiumPadHoleGeometry(record)
+  const holeOffsetX = milsToMillimeters(holeGeometry.offsetXMils)
+  const holeOffsetY = milsToMillimeters(holeGeometry.offsetYMils)
   const shape = normalizeShape(geometry.shape)
   const id = `altium_${index}`
 
@@ -441,7 +445,7 @@ function convertPad(
       const holeWidth = milsToMillimeters(slotHoleSize.widthMils)
       const holeHeight = milsToMillimeters(slotHoleSize.heightMils)
       if (isRectangularShape(shape)) {
-        const rotated = record.holeRotation !== 0 || record.rotation !== 0
+        const rotated = holeGeometry.rotation !== 0 || record.rotation !== 0
         return {
           type: "pcb_plated_hole",
           pcb_plated_hole_id: `pcb_plated_hole_${id}`,
@@ -452,13 +456,13 @@ function convertPad(
           pad_shape: "rect",
           hole_width: holeWidth,
           hole_height: holeHeight,
-          ...(rotated ? { hole_ccw_rotation: record.holeRotation } : {}),
+          ...(rotated ? { hole_ccw_rotation: holeGeometry.rotation } : {}),
           rect_pad_width: width,
           rect_pad_height: height,
           rect_border_radius: cornerRadius,
           ...(rotated ? { rect_ccw_rotation: record.rotation } : {}),
-          hole_offset_x: 0,
-          hole_offset_y: 0,
+          hole_offset_x: holeOffsetX,
+          hole_offset_y: holeOffsetY,
           x,
           y,
           layers,
@@ -472,7 +476,7 @@ function convertPad(
         outer_height: height,
         hole_width: holeWidth,
         hole_height: holeHeight,
-        ccw_rotation: record.holeRotation || record.rotation,
+        ccw_rotation: holeGeometry.rotation,
         x,
         y,
         layers,
@@ -491,8 +495,8 @@ function convertPad(
         rect_pad_height: height,
         rect_border_radius: cornerRadius,
         rect_ccw_rotation: record.rotation,
-        hole_offset_x: 0,
-        hole_offset_y: 0,
+        hole_offset_x: holeOffsetX,
+        hole_offset_y: holeOffsetY,
         x,
         y,
         layers,
@@ -513,8 +517,8 @@ function convertPad(
           height,
           rotation: record.rotation,
         }),
-        hole_offset_x: 0,
-        hole_offset_y: 0,
+        hole_offset_x: holeOffsetX,
+        hole_offset_y: holeOffsetY,
         x,
         y,
         layers,

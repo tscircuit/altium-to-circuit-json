@@ -1,4 +1,8 @@
-import { type AltiumPadRecord, parseAltiumMeasurementToMils } from "altiumts"
+import {
+  type AltiumPadRecord,
+  normalizeAltiumAngle,
+  parseAltiumMeasurementToMils,
+} from "altiumts"
 
 // Altium uses fixed top and bottom ordinals in its 32-entry pad-stack table.
 const TOP_LAYER_ORDINAL = 0
@@ -11,13 +15,17 @@ export interface AltiumPadGeometry {
   widthMils: number
 }
 
+export interface AltiumPadHoleGeometry {
+  offsetXMils: number
+  offsetYMils: number
+  rotation: number
+}
+
 export function getAltiumPadGeometry(
   record: AltiumPadRecord,
 ): AltiumPadGeometry | undefined {
-  const normalizedLayer = record.layer?.replaceAll(" ", "").toUpperCase()
-  const isBottomLayer =
-    normalizedLayer === "BOTTOM" || normalizedLayer === "BOTTOMLAYER"
-  const layerOrdinal = isBottomLayer ? BOTTOM_LAYER_ORDINAL : TOP_LAYER_ORDINAL
+  const layerOrdinal = getPadLayerOrdinal(record)
+  const isBottomLayer = layerOrdinal === BOTTOM_LAYER_ORDINAL
   const size = isBottomLayer ? (record.bottomSize ?? record.size) : record.size
   if (!size) return undefined
 
@@ -45,6 +53,30 @@ export function getAltiumPadGeometry(
   }
 }
 
+export function getAltiumPadHoleGeometry(
+  record: AltiumPadRecord,
+): AltiumPadHoleGeometry {
+  const layerOrdinal = getPadLayerOrdinal(record)
+  const offsetXMils = getPadMeasurement(record, [
+    `LAYER${layerOrdinal}HOLEXOFFSET`,
+    `PADXOFFSET${layerOrdinal}`,
+  ])
+  const offsetYMils = getPadMeasurement(record, [
+    `LAYER${layerOrdinal}HOLEYOFFSET`,
+    `PADYOFFSET${layerOrdinal}`,
+  ])
+  // Altium stores hole offsets and rotation in the pad's local coordinates.
+  const radians = (record.rotation * Math.PI) / 180
+
+  return {
+    offsetXMils:
+      offsetXMils * Math.cos(radians) - offsetYMils * Math.sin(radians),
+    offsetYMils:
+      offsetXMils * Math.sin(radians) + offsetYMils * Math.cos(radians),
+    rotation: normalizeAltiumAngle(record.rotation + record.holeRotation),
+  }
+}
+
 export function getAltiumSlotHoleSize(record: AltiumPadRecord): {
   heightMils: number
   widthMils: number
@@ -58,4 +90,22 @@ export function getAltiumSlotHoleSize(record: AltiumPadRecord): {
     heightMils: holeSizeMils,
     widthMils: Math.max(slotWidthMils, 1),
   }
+}
+
+function getPadLayerOrdinal(record: AltiumPadRecord): number {
+  const normalizedLayer = record.layer?.replaceAll(" ", "").toUpperCase()
+  return normalizedLayer === "BOTTOM" || normalizedLayer === "BOTTOMLAYER"
+    ? BOTTOM_LAYER_ORDINAL
+    : TOP_LAYER_ORDINAL
+}
+
+function getPadMeasurement(
+  record: AltiumPadRecord,
+  keys: readonly string[],
+): number {
+  for (const key of keys) {
+    const value = parseAltiumMeasurementToMils(record.getCaseInsensitive(key))
+    if (value !== undefined) return value
+  }
+  return 0
 }
