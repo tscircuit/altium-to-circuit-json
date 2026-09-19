@@ -33,6 +33,9 @@ import type {
   PcbSilkscreenPath,
   PcbSilkscreenRect,
   PcbSilkscreenText,
+  PcbFabricationNotePath,
+  PcbFabricationNoteRect,
+  PcbFabricationNoteText,
   PcbSmtPad,
   PcbTrace,
   PcbVia,
@@ -70,6 +73,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeCourtyards?: boolean
   includeKeepouts?: boolean
   includeDimensions?: boolean
+  includeFabricationNotes?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
   includeTraces?: boolean
@@ -81,6 +85,7 @@ export function convertAltiumPcbDocToCircuitJson(
   options: ConvertAltiumPcbDocOptions = {},
 ): AnyCircuitElement[] {
   const elements: AnyCircuitElement[] = []
+  const bottomMechanicalLayers = getBottomMechanicalLayers(document)
 
   if (options.includeBoardOutline !== false) {
     elements.push(createBoard(document))
@@ -167,6 +172,14 @@ export function convertAltiumPcbDocToCircuitJson(
         if (options.includeSilkscreen === false) continue
         const line = convertSilkscreenLine(record, index)
         if (line) elements.push(line)
+      } else if (isMechanicalLayer(record.layer)) {
+        if (options.includeFabricationNotes === false) continue
+        const path = convertFabricationNoteLine(
+          record,
+          index,
+          mapFabricationMechanicalLayer(record.layer, bottomMechanicalLayers),
+        )
+        if (path) elements.push(path)
       } else if (options.includeTraces !== false) {
         const trace = convertTrack(record, index)
         if (trace) elements.push(trace)
@@ -182,9 +195,22 @@ export function convertAltiumPcbDocToCircuitJson(
 
     if (record instanceof AltiumArcRecord) {
       if (isCourtyardLayer(record.layer)) continue
-      if (isOverlayLayer(record.layer)) {
+
+      const layer = record.layer
+      const isSilkscreen = isOverlayLayer(layer)
+      const isMechanical = isMechanicalLayer(layer)
+
+      if (isSilkscreen) {
         if (options.includeSilkscreen === false) continue
         const path = convertSilkscreenArc(record, index)
+        if (path) elements.push(path)
+      } else if (isMechanical) {
+        if (options.includeFabricationNotes === false) continue
+        const path = convertFabricationNoteArc(
+          record,
+          index,
+          mapFabricationMechanicalLayer(layer, bottomMechanicalLayers),
+        )
         if (path) elements.push(path)
       } else if (options.includeTraces !== false) {
         const trace = convertArcTrack(record, index)
@@ -195,9 +221,22 @@ export function convertAltiumPcbDocToCircuitJson(
 
     if (record instanceof AltiumTextRecord) {
       if (isCourtyardLayer(record.layer)) continue
-      if (isOverlayLayer(record.layer)) {
+
+      const layer = record.layer
+      const isSilkscreen = isOverlayLayer(layer)
+      const isMechanical = isMechanicalLayer(layer)
+
+      if (isSilkscreen) {
         if (options.includeSilkscreen === false) continue
         const text = convertSilkscreenText(record, index)
+        if (text) elements.push(text)
+      } else if (isMechanical) {
+        if (options.includeFabricationNotes === false) continue
+        const text = convertFabricationNoteText(
+          record,
+          index,
+          mapFabricationMechanicalLayer(layer, bottomMechanicalLayers),
+        )
         if (text) elements.push(text)
       } else {
         const text = convertCopperText(record, index)
@@ -213,16 +252,27 @@ export function convertAltiumPcbDocToCircuitJson(
       continue
     }
 
-    if (
-      options.includeSilkscreen === false ||
-      !isOverlayLayer(getLayer(record))
-    ) {
-      continue
-    }
-
     if (record instanceof AltiumFillRecord) {
-      const rect = convertSilkscreenFill(record, index)
-      if (rect) elements.push(rect)
+      const layer = getLayer(record)
+      if (isCourtyardLayer(layer)) continue
+
+      const isSilkscreen = isOverlayLayer(layer)
+      const isMechanical = isMechanicalLayer(layer)
+
+      if (isSilkscreen) {
+        if (options.includeSilkscreen === false) continue
+        const rect = convertSilkscreenFill(record, index)
+        if (rect) elements.push(rect)
+      } else if (isMechanical) {
+        if (options.includeFabricationNotes === false) continue
+        const rect = convertFabricationNoteFill(
+          record,
+          index,
+          mapFabricationMechanicalLayer(layer, bottomMechanicalLayers),
+        )
+        if (rect) elements.push(rect)
+      }
+      continue
     }
   }
 
@@ -973,7 +1023,7 @@ function decodeAltiumWideString(raw: string | undefined): string {
 
 function pcbComponentIdForRecord(record: AltiumRecord): string {
   const index = record.getNumber("COMPONENT")
-  return index === undefined || index < 0
+  return index === undefined || index < 0 || index === 0xffff
     ? BOARD_GRAPHICS_COMPONENT_ID
     : componentId(index)
 }
@@ -993,9 +1043,48 @@ function mapTextAnchor(justification: string | undefined): NinePointAnchor {
   return "center"
 }
 
+function mapFabricationNoteTextAnchor(
+  justification: string | undefined,
+): PcbFabricationNoteText["anchor_alignment"] {
+  const anchor = mapTextAnchor(justification)
+  switch (anchor) {
+    case "top_left":
+    case "top_right":
+    case "bottom_left":
+    case "bottom_right":
+      return anchor
+    default:
+      return "center"
+  }
+}
+
 function isOverlayLayer(layer: string | undefined): boolean {
   const normalized = normalizeLayer(layer)
   return normalized === "TOPOVERLAY" || normalized === "BOTTOMOVERLAY"
+}
+
+function isMechanicalLayer(layer: string | undefined): boolean {
+  const normalized = normalizeLayer(layer)
+  return normalized.startsWith("MECHANICAL") && !isCourtyardLayer(layer)
+}
+
+function getBottomMechanicalLayers(
+  document: AltiumPcbDocument,
+): ReadonlySet<string> {
+  const bottomLayers = new Set<string>()
+  if (!document.board) return bottomLayers
+  for (let index = 0; index < 32; index++) {
+    const layer = document.board.getDecoded(`MECHPAIR${index}L2`)
+    if (layer) bottomLayers.add(normalizeLayer(layer))
+  }
+  return bottomLayers
+}
+
+function mapFabricationMechanicalLayer(
+  layer: string | undefined,
+  bottomLayers: ReadonlySet<string>,
+): "top" | "bottom" {
+  return bottomLayers.has(normalizeLayer(layer)) ? "bottom" : "top"
 }
 
 function isKeepoutLayer(layer: string | undefined): boolean {
@@ -1109,4 +1198,89 @@ function createOctagonPoints({
     x: x + point.x * Math.cos(radians) - point.y * Math.sin(radians),
     y: y + point.x * Math.sin(radians) + point.y * Math.cos(radians),
   }))
+}
+
+function convertFabricationNoteLine(
+  record: AltiumTrackRecord,
+  index: number,
+  layer: "top" | "bottom",
+): PcbFabricationNotePath | undefined {
+  if (!record.start || !record.end) return undefined
+  return {
+    type: "pcb_fabrication_note_path",
+    pcb_fabrication_note_path_id: `pcb_fabrication_note_path_altium_line_${index}`,
+    pcb_component_id: pcbComponentIdForRecord(record),
+    stroke_width: milsToMillimeters(record.widthMils ?? 4),
+    route: [toMillimeterPoint(record.start), toMillimeterPoint(record.end)],
+    layer,
+  }
+}
+
+function convertFabricationNoteArc(
+  record: AltiumArcRecord,
+  index: number,
+  layer: "top" | "bottom",
+): PcbFabricationNotePath | undefined {
+  if (!record.center || !record.radiusMils) return undefined
+  const points = approximateArc({
+    center: record.center,
+    radius: record.radiusMils,
+    startAngle: record.startAngle,
+    endAngle: record.endAngle,
+  })
+  return {
+    type: "pcb_fabrication_note_path",
+    pcb_fabrication_note_path_id: `pcb_fabrication_note_path_altium_arc_${index}`,
+    pcb_component_id: pcbComponentIdForRecord(record),
+    route: points.map(toMillimeterPoint),
+    stroke_width: milsToMillimeters(record.widthMils ?? 4),
+    layer,
+  }
+}
+
+function convertFabricationNoteFill(
+  record: AltiumFillRecord,
+  index: number,
+  layer: "top" | "bottom",
+): PcbFabricationNoteRect | undefined {
+  if (!record.bounds) return undefined
+  const width = milsToMillimeters(record.bounds.maxX - record.bounds.minX)
+  const height = milsToMillimeters(record.bounds.maxY - record.bounds.minY)
+  return {
+    type: "pcb_fabrication_note_rect",
+    pcb_fabrication_note_rect_id: `pcb_fabrication_note_rect_altium_${index}`,
+    pcb_component_id: pcbComponentIdForRecord(record),
+    center: {
+      x: milsToMillimeters((record.bounds.minX + record.bounds.maxX) / 2),
+      y: milsToMillimeters((record.bounds.minY + record.bounds.maxY) / 2),
+    },
+    width,
+    height,
+    stroke_width: Math.min(width, height),
+    layer,
+  }
+}
+
+function convertFabricationNoteText(
+  record: AltiumTextRecord,
+  index: number,
+  layer: "top" | "bottom",
+): PcbFabricationNoteText | undefined {
+  const text =
+    decodeAltiumWideString(record.getDecoded("WIDESTRING")) ||
+    record.getDecoded("TEXT") ||
+    record.text
+  if (!record.position || !text) return undefined
+  return {
+    type: "pcb_fabrication_note_text",
+    pcb_fabrication_note_text_id: `pcb_fabrication_note_text_altium_${index}`,
+    pcb_component_id: pcbComponentIdForRecord(record),
+    text,
+    font: "tscircuit2024",
+    font_size: milsToMillimeters(record.heightMils ?? 30),
+    anchor_position: toMillimeterPoint(record.position),
+    anchor_alignment: mapFabricationNoteTextAnchor(record.justification),
+    ccw_rotation: record.rotation,
+    layer,
+  }
 }
