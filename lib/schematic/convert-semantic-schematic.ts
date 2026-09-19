@@ -214,17 +214,31 @@ function convertComponents(params: {
         }),
     )
 
+    const designatorRecord = findOwnedTextRecord(
+      ownedRecords,
+      "34",
+      "Designator",
+    )
     const designator =
-      findOwnedText(ownedRecords, "34", "Designator") ??
+      designatorRecord?.getDecoded("TEXT") ??
       componentRecord.getDecoded("DESIGNATOR") ??
       `U${componentIndex}`
     // Altium libraries commonly store the human-readable component value in
     // the named `Value` parameter, while `Comment` may contain a manufacturer
     // part number (or another library-specific description). Prefer the
     // explicit value field and retain the older fallbacks for simpler files.
+    const valueRecord = findOwnedTextRecord(ownedRecords, "41", "Value")
+    const commentRecord = findOwnedTextRecord(ownedRecords, "41", "Comment")
+    const recordValue = valueRecord?.getDecoded("TEXT")?.trim()
+    const recordComment = commentRecord?.getDecoded("TEXT")?.trim()
+    const renderedValueRecord = recordValue
+      ? valueRecord
+      : recordComment
+        ? commentRecord
+        : undefined
     const value =
-      findOwnedText(ownedRecords, "41", "Value")?.trim() ||
-      findOwnedText(ownedRecords, "41", "Comment")?.trim() ||
+      recordValue ||
+      recordComment ||
       componentRecord.getDecoded("COMMENT")?.trim() ||
       componentRecord.getDecoded("DESIGNITEMID")?.trim() ||
       componentRecord.getDecoded("LIBREFERENCE")?.trim() ||
@@ -322,19 +336,24 @@ function convertComponents(params: {
     elements.push(schematicComponent)
 
     if (!symbolSelection && options.includeText !== false) {
-      elements.push(
-        createComponentText({
-          anchor: "bottom_left",
-          component: schematicComponent,
-          id: `schematic_component_designator_altium_${componentIndex}`,
-          position: {
-            x: center.x - size.width / 2,
-            y: center.y + size.height / 2 + 0.13,
-          },
-          text: designator,
-        }),
-      )
-      if (value) {
+      if (shouldRenderComponentText(designatorRecord, options.includeHidden)) {
+        elements.push(
+          createComponentText({
+            anchor: "bottom_left",
+            component: schematicComponent,
+            id: `schematic_component_designator_altium_${componentIndex}`,
+            position: {
+              x: center.x - size.width / 2,
+              y: center.y + size.height / 2 + 0.13,
+            },
+            text: designator,
+          }),
+        )
+      }
+      if (
+        value &&
+        shouldRenderComponentText(renderedValueRecord, options.includeHidden)
+      ) {
         elements.push(
           createComponentText({
             anchor: "top_left",
@@ -1812,13 +1831,26 @@ function findOwnedText(
   recordKind: string,
   name: string,
 ): string | undefined {
-  return records
-    .find(
-      (record) =>
-        record.recordKind === recordKind &&
-        record.getDecoded("NAME")?.toLowerCase() === name.toLowerCase(),
-    )
-    ?.getDecoded("TEXT")
+  return findOwnedTextRecord(records, recordKind, name)?.getDecoded("TEXT")
+}
+
+function findOwnedTextRecord(
+  records: AltiumRecord[],
+  recordKind: string,
+  name: string,
+): AltiumRecord | undefined {
+  return records.find(
+    (record) =>
+      record.recordKind === recordKind &&
+      record.getDecoded("NAME")?.toLowerCase() === name.toLowerCase(),
+  )
+}
+
+function shouldRenderComponentText(
+  record: AltiumRecord | undefined,
+  includeHidden: boolean | undefined,
+): boolean {
+  return includeHidden === true || record?.getBoolean("ISHIDDEN") !== true
 }
 
 function isOwnedRecordVisible(
