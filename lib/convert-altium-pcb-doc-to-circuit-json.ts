@@ -50,6 +50,10 @@ import { getPreferredPcbBoardOutline } from "./pcb/get-board-outline"
 import { mapAltiumCopperLayer } from "./pcb/map-altium-copper-layer"
 import { stitchConnectedAltiumPaths } from "./pcb/stitch-connected-paths"
 
+type PcbSilkscreenTextWithHidden = PcbSilkscreenText & {
+  is_hidden?: boolean
+}
+
 const MILS_TO_MILLIMETERS = 0.0254
 const ALTIUM_SLOT_HOLE_TYPE = 2
 const BOARD_ID = "pcb_board_altium"
@@ -216,7 +220,7 @@ export function convertAltiumPcbDocToCircuitJson(
       if (isCourtyardLayer(record.layer)) continue
       if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
-        const text = convertSilkscreenText(record, index)
+        const text = convertSilkscreenText(document, record, index)
         if (text) elements.push(text)
       } else {
         const text = convertCopperText(record, index)
@@ -1069,14 +1073,16 @@ function convertSilkscreenRegion(
 }
 
 function convertSilkscreenText(
+  document: AltiumPcbDocument,
   record: AltiumTextRecord,
   index: number,
-): PcbSilkscreenText | undefined {
+): PcbSilkscreenTextWithHidden | undefined {
   const text =
     decodeAltiumWideString(record.getDecoded("WIDESTRING")) ||
     record.getDecoded("TEXT") ||
     record.text
   if (!record.position || !text) return undefined
+  const isHidden = isSilkscreenTextHidden(document, record)
   return {
     type: "pcb_silkscreen_text",
     pcb_silkscreen_text_id: `pcb_silkscreen_text_altium_${index}`,
@@ -1089,7 +1095,23 @@ function convertSilkscreenText(
     ccw_rotation: record.rotation,
     layer: mapOverlayLayer(record.layer),
     is_mirrored: record.mirrored,
+    ...(isHidden ? { is_hidden: true } : {}),
   }
+}
+
+function isSilkscreenTextHidden(
+  document: AltiumPcbDocument,
+  record: AltiumTextRecord,
+): boolean {
+  const component = document.getComponentForRecord(record)
+  if (!component) return false
+  if (record.isDesignator && component.getBoolean("NAMEON") === false) {
+    return true
+  }
+  if (record.isComment && component.getBoolean("COMMENTON") === false) {
+    return true
+  }
+  return false
 }
 
 function decodeAltiumWideString(raw: string | undefined): string {
