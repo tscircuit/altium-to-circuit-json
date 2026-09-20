@@ -27,6 +27,7 @@ import type {
   PcbCutout,
   PcbFabricationNoteDimension,
   PcbFabricationNotePath,
+  PcbFabricationNoteText,
   PcbHole,
   PcbPlatedHole,
   PcbSilkscreenGraphic,
@@ -73,6 +74,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeCourtyards?: boolean
   includeKeepouts?: boolean
   includeDimensions?: boolean
+  includeFabricationNoteText?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
   includeTraces?: boolean
@@ -85,6 +87,7 @@ export function convertAltiumPcbDocToCircuitJson(
 ): AnyCircuitElement[] {
   const elements: AnyCircuitElement[] = []
   const netContext = createPcbNetContext(document)
+  const mechanicalLayerSides = getMechanicalLayerSides(document)
 
   elements.push(...netContext.elements)
 
@@ -213,8 +216,16 @@ export function convertAltiumPcbDocToCircuitJson(
     }
 
     if (record instanceof AltiumTextRecord) {
-      if (isCourtyardLayer(record.layer)) continue
-      if (isOverlayLayer(record.layer)) {
+      if (isMechanicalLayer(record.layer)) {
+        if (options.includeFabricationNoteText === false) continue
+        const text = convertFabricationNoteText({
+          document,
+          mechanicalLayerSides,
+          record,
+          recordIndex: index,
+        })
+        if (text) elements.push(text)
+      } else if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
         const text = convertSilkscreenText(record, index)
         if (text) elements.push(text)
@@ -711,10 +722,7 @@ function convertCopperText(
   record: AltiumTextRecord,
   index: number,
 ): PcbCopperText | undefined {
-  const text =
-    decodeAltiumWideString(record.getDecoded("WIDESTRING")) ||
-    record.getDecoded("TEXT") ||
-    record.text
+  const text = getAltiumText(record)
   if (!record.position || !text) return undefined
   const layer = mapAltiumCopperLayer(record.layer)
   if (!layer) return undefined
@@ -1072,10 +1080,7 @@ function convertSilkscreenText(
   record: AltiumTextRecord,
   index: number,
 ): PcbSilkscreenText | undefined {
-  const text =
-    decodeAltiumWideString(record.getDecoded("WIDESTRING")) ||
-    record.getDecoded("TEXT") ||
-    record.text
+  const text = getAltiumText(record)
   if (!record.position || !text) return undefined
   return {
     type: "pcb_silkscreen_text",
@@ -1090,6 +1095,116 @@ function convertSilkscreenText(
     layer: mapOverlayLayer(record.layer),
     is_mirrored: record.mirrored,
   }
+}
+
+function convertFabricationNoteText({
+  document,
+  mechanicalLayerSides,
+  record,
+  recordIndex,
+}: {
+  document: AltiumPcbDocument
+  mechanicalLayerSides: ReadonlyMap<string, "top" | "bottom">
+  record: AltiumTextRecord
+  recordIndex: number
+}): PcbFabricationNoteText | undefined {
+  const position = record.position
+  const sourceText = getAltiumText(record)
+  if (!position || !sourceText) return undefined
+
+  const component = document.getComponentForRecord(record)
+  const normalizedText = sourceText.trim().toUpperCase()
+  const isDesignator = record.isDesignator || normalizedText === ".DESIGNATOR"
+  const isComment = record.isComment || normalizedText === ".COMMENT"
+
+  if (component && isDesignator && component.getBoolean("NAMEON") === false) {
+    return undefined
+  }
+  if (component && isComment && component.getBoolean("COMMENTON") === false) {
+    return undefined
+  }
+
+  let text = sourceText
+  if (isDesignator && component?.designator) {
+    text = component.designator
+  } else if (isComment && component?.comment) {
+    text = component.comment
+  }
+  const componentIndex = component
+    ? document.components.indexOf(component)
+    : undefined
+  const componentSide = component?.side
+  let layer: "top" | "bottom" = record.mirrored ? "bottom" : "top"
+  layer = mechanicalLayerSides.get(normalizeLayer(record.layer)) ?? layer
+  if (componentSide === "top" || componentSide === "bottom") {
+    layer = componentSide
+  }
+
+  return {
+    type: "pcb_fabrication_note_text",
+    pcb_fabrication_note_text_id: `pcb_fabrication_note_text_altium_${recordIndex}`,
+    pcb_component_id:
+      componentIndex === undefined || componentIndex < 0
+        ? BOARD_GRAPHICS_COMPONENT_ID
+        : componentId(componentIndex),
+    text,
+    font: "tscircuit2024",
+    font_size: milsToMillimeters(record.heightMils ?? 30),
+    anchor_position: toMillimeterPoint(position),
+    anchor_alignment: mapFabricationTextAnchor(record.justification),
+    ccw_rotation: record.rotation,
+    layer,
+    color: "#ec4899",
+  }
+}
+
+function getAltiumText(record: AltiumTextRecord): string | undefined {
+  return (
+    decodeAltiumWideString(record.getDecoded("WIDESTRING")) ||
+    record.getDecoded("TEXT") ||
+    record.text
+  )
+}
+
+function mapFabricationTextAnchor(
+  justification: string | undefined,
+): PcbFabricationNoteText["anchor_alignment"] {
+  const anchor = mapTextAnchor(justification)
+  if (
+    anchor === "top_left" ||
+    anchor === "top_right" ||
+    anchor === "bottom_left" ||
+    anchor === "bottom_right"
+  ) {
+    return anchor
+  }
+  return "center"
+}
+
+function getMechanicalLayerSides(
+  document: AltiumPcbDocument,
+): ReadonlyMap<string, "top" | "bottom"> {
+  const sides = new Map<string, "top" | "bottom">()
+  if (!document.board) return sides
+
+  for (const entry of getPcbLayerStack(document.board).entries) {
+    const layerId = Number(entry.layerId)
+    if (!Number.isSafeInteger(layerId)) continue
+
+    // Stack IDs encode the layer family and number in separate 16-bit halves.
+    const layerFamily = Math.floor(layerId / 0x10000)
+    const layerNumber = layerId % 0x10000
+    if (layerFamily !== 0x102 || layerNumber < 1 || layerNumber > 32) {
+      continue
+    }
+    const normalizedName = normalizeLayer(entry.name)
+    if (normalizedName.includes("BOTTOM")) {
+      sides.set(`MECHANICAL${layerNumber}`, "bottom")
+    } else if (normalizedName.includes("TOP")) {
+      sides.set(`MECHANICAL${layerNumber}`, "top")
+    }
+  }
+  return sides
 }
 
 function decodeAltiumWideString(raw: string | undefined): string {
@@ -1127,6 +1242,10 @@ function mapTextAnchor(justification: string | undefined): NinePointAnchor {
 function isOverlayLayer(layer: string | undefined): boolean {
   const normalized = normalizeLayer(layer)
   return normalized === "TOPOVERLAY" || normalized === "BOTTOMOVERLAY"
+}
+
+function isMechanicalLayer(layer: string | undefined): boolean {
+  return /^MECHANICAL\d+$/u.test(normalizeLayer(layer))
 }
 
 function isKeepoutLayer(layer: string | undefined): boolean {
