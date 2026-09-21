@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test"
-import { parseAltiumPcbDoc, serializeAltiumPcbToSvg } from "altiumts"
+import {
+  AltiumBinaryPcbDoc,
+  parseAltiumBinaryPcbDoc,
+  parseAltiumPcbDoc,
+  serializeAltiumPcbDocToBinary,
+  serializeAltiumPcbToSvg,
+} from "altiumts"
 import type { PcbSilkscreenGraphic } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumPcbDocToCircuitJson } from "../../lib"
@@ -36,4 +42,93 @@ test("imports filled Altium silkscreen regions with holes", async () => {
     label: "Filled PCB silkscreen region",
   })
   await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
+})
+
+function createBinarySilkscreenDocument({
+  layer,
+  includeShapeBasedRegions,
+}: {
+  layer: "TOPOVERLAY" | "BOTTOMOVERLAY"
+  includeShapeBasedRegions: boolean
+}): AltiumBinaryPcbDoc {
+  const regionSource = silkscreenRegionPcbDoc
+    .getRecordsByKind("Region")[0]!
+    .getString()
+    .replace("TOPOVERLAY", layer)
+  const source = [
+    silkscreenRegionPcbDoc.board!.getString(),
+    `${regionSource}|COMPONENT=0`,
+    `${regionSource}|COMPONENT=1`,
+    `|RECORD=Fill|LAYER=${layer}|X1=10mil|Y1=10mil|X2=40mil|Y2=40mil`,
+  ].join("\n")
+  const document = parseAltiumBinaryPcbDoc(
+    serializeAltiumPcbDocToBinary(source),
+  )
+  const primitiveRecords = new Map(document.primitiveRecords)
+  const cachedRegions = parseAltiumPcbDoc(
+    [
+      silkscreenRegionPcbDoc.board!.getString(),
+      ...[`${regionSource}|COMPONENT=0`, `${regionSource}|COMPONENT=1`].map(
+        (record) => record.replace("RECORD=Region|", "RECORD=RegionFill|"),
+      ),
+    ].join("\n"),
+  ).getRecordsByKind("RegionFill")
+  primitiveRecords.set("Regions6", cachedRegions)
+  if (!includeShapeBasedRegions) primitiveRecords.delete("ShapeBasedRegions6")
+
+  return new AltiumBinaryPcbDoc({
+    compoundFile: document.compoundFile,
+    primitiveRecords,
+    propertyRecords: new Map(document.propertyRecords),
+    streamSummaries: document.streamSummaries,
+  })
+}
+
+test.each(["TOPOVERLAY", "BOTTOMOVERLAY"] as const)(
+  "imports %s regions once when cached fills also exist",
+  (layer) => {
+    const document = createBinarySilkscreenDocument({
+      layer,
+      includeShapeBasedRegions: true,
+    })
+    expect(document.getRecordsByKind("Region")).toHaveLength(2)
+    expect(document.getRecordsByKind("RegionFill")).toHaveLength(2)
+
+    const circuitJson = convertAltiumPcbDocToCircuitJson(document)
+    const graphics = circuitJson.filter(
+      (element) => element.type === "pcb_silkscreen_graphic",
+    )
+    expect(graphics).toHaveLength(2)
+    expect(graphics.map((graphic) => graphic.pcb_component_id)).toEqual([
+      "pcb_component_altium_0",
+      "pcb_component_altium_1",
+    ])
+    for (const graphic of graphics) {
+      expect(graphic.layer).toBe(layer === "TOPOVERLAY" ? "top" : "bottom")
+      expect(graphic.brep_shape.inner_rings).toHaveLength(1)
+    }
+    expect(
+      circuitJson.filter((element) => element.type === "pcb_silkscreen_rect"),
+    ).toHaveLength(1)
+    expect(
+      convertAltiumPcbDocToCircuitJson(document, {
+        includeSilkscreen: false,
+      }).filter((element) => element.type.startsWith("pcb_silkscreen_")),
+    ).toHaveLength(0)
+  },
+)
+
+test("preserves cached silkscreen regions when no shape-based stream exists", () => {
+  const document = createBinarySilkscreenDocument({
+    layer: "TOPOVERLAY",
+    includeShapeBasedRegions: false,
+  })
+  const graphics = convertAltiumPcbDocToCircuitJson(document).filter(
+    (element) => element.type === "pcb_silkscreen_graphic",
+  )
+
+  expect(graphics).toHaveLength(2)
+  for (const graphic of graphics) {
+    expect(graphic.brep_shape.inner_rings).toHaveLength(1)
+  }
 })
