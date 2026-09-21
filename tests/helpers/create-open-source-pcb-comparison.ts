@@ -36,7 +36,17 @@ export async function createOpenSourcePcbComparison({
       `Expected ${filename} to contain an Altium PCB document, got ${document.type}`,
     )
   }
-  const circuitJson = convertAltiumToCircuitJson(source, { sourceType: "pcb" })
+  const hasSolderMask = document.records.some((record) =>
+    /^(?:TOP|BOTTOM)SOLDER$/u.test(
+      (record.getDecoded("LAYER") ?? "")
+        .replace(/[\s_.-]+/gu, "")
+        .toUpperCase(),
+    ),
+  )
+  const circuitJson = convertAltiumToCircuitJson(source, {
+    pcb: { includeSolderMask: hasSolderMask },
+    sourceType: "pcb",
+  })
   const board = circuitJson.find((element) => element.type === "pcb_board")
   if (!board) throw new Error(`${filename} did not produce a PCB board`)
 
@@ -68,6 +78,7 @@ export async function createOpenSourcePcbComparison({
   })
   const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
     matchBoardAspectRatio: true,
+    showSolderMask: hasSolderMask,
     viewportTarget: focusOnBoard
       ? { pcb_board_id: board.pcb_board_id }
       : undefined,

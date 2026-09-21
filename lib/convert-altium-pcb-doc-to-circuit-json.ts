@@ -42,6 +42,10 @@ import type {
 } from "circuit-json"
 import { convertAltiumCopperAreas } from "./pcb/convert-altium-copper-areas"
 import {
+  convertAltiumPcbSoldermaskOpening,
+  isAltiumSoldermaskLayer,
+} from "./pcb/convert-altium-pcb-soldermask-opening"
+import {
   getAltiumPadGeometry,
   getAltiumPadHoleGeometry,
   getAltiumSlotHoleSize,
@@ -75,6 +79,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeDimensions?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
+  includeSolderMask?: boolean
   includeTraces?: boolean
   includeVias?: boolean
 }
@@ -142,6 +147,17 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   for (const [index, record] of document.records.entries()) {
+    if (options.includeSolderMask === true) {
+      const soldermaskOpening = convertAltiumPcbSoldermaskOpening({
+        record,
+        recordIndex: index,
+      })
+      if (soldermaskOpening) {
+        elements.push(soldermaskOpening)
+        continue
+      }
+    }
+
     if (
       record instanceof AltiumArcRecord &&
       isKeepoutLayer(record.layer) &&
@@ -182,7 +198,9 @@ export function convertAltiumPcbDocToCircuitJson(
 
     if (record instanceof AltiumTrackRecord) {
       if (isCourtyardLayer(record.layer)) continue
-      if (isOverlayLayer(record.layer)) {
+      if (isSolderMaskLayer(record.layer)) {
+        continue
+      } else if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
         const line = convertSilkscreenLine(record, index)
         if (line) elements.push(line)
@@ -289,7 +307,7 @@ function convertFabricationNotePath(
     type: "pcb_fabrication_note_path",
     pcb_fabrication_note_path_id: `pcb_fabrication_note_path_altium_${index}`,
     pcb_component_id: pcbComponentIdForRecord(record),
-    layer: mapCourtyardLayer(getLayer(record)),
+    layer: mapMechanicalLayer(getLayer(record)),
     route: route.map(toMillimeterPoint),
     stroke_width: milsToMillimeters(record.widthMils ?? 4),
     color: "#ec4899",
@@ -576,6 +594,11 @@ function createBoard(document: AltiumPcbDocument): PcbBoard {
     thickness: 1.6,
     num_layers: numLayers,
     material: "fr4",
+    ...(document.records.some((record) =>
+      isAltiumSoldermaskLayer(getLayer(record)),
+    )
+      ? { solder_mask_color: "green" }
+      : {}),
   }
 }
 
@@ -1146,6 +1169,11 @@ function mapTextAnchor(justification: string | undefined): NinePointAnchor {
 function isOverlayLayer(layer: string | undefined): boolean {
   const normalized = normalizeLayer(layer)
   return normalized === "TOPOVERLAY" || normalized === "BOTTOMOVERLAY"
+}
+
+function isSolderMaskLayer(layer: string | undefined): boolean {
+  const normalized = normalizeLayer(layer)
+  return normalized === "TOPSOLDER" || normalized === "BOTTOMSOLDER"
 }
 
 function isKeepoutLayer(layer: string | undefined): boolean {
