@@ -1,5 +1,6 @@
 import {
   AltiumArcRecord,
+  AltiumBinaryPcbDoc,
   AltiumDimensionRecord,
   AltiumFillRecord,
   AltiumPadRecord,
@@ -143,6 +144,12 @@ export function convertAltiumPcbDocToCircuitJson(
     )
   }
 
+  // Prefer shape-based regions over cached fills, with a fallback for older files.
+  const binaryRegions =
+    document instanceof AltiumBinaryPcbDoc
+      ? new Set(document.regions)
+      : undefined
+
   for (const [index, record] of document.records.entries()) {
     if (
       record instanceof AltiumArcRecord &&
@@ -238,6 +245,7 @@ export function convertAltiumPcbDocToCircuitJson(
 
     if (record instanceof AltiumRegionRecord && isOverlayLayer(record.layer)) {
       if (options.includeSilkscreen === false) continue
+      if (binaryRegions && !binaryRegions.has(record)) continue
       const graphic = convertSilkscreenRegion(record, index)
       if (graphic) elements.push(graphic)
       continue

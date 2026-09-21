@@ -12,6 +12,15 @@ test(
       })
 
     expectValidImportedPcb({ circuitJson, circuitJsonSvg })
+    const silkscreenRegions = circuitJson.filter(
+      (element) => element.type === "pcb_silkscreen_graphic",
+    )
+    expect(
+      silkscreenRegions.filter((region) => region.layer === "top"),
+    ).toHaveLength(4)
+    expect(
+      silkscreenRegions.filter((region) => region.layer === "bottom"),
+    ).toHaveLength(13)
     await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
   },
   { timeout: 40_000 },
