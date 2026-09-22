@@ -14,9 +14,10 @@ export function createPortLeadEdges(
     facingDirection === "left" || facingDirection === "right"
       ? { x: electricalTerminal.x, y: portCenter.y }
       : { x: portCenter.x, y: electricalTerminal.y }
-  const points = [portCenter, elbow, electricalTerminal].filter(
-    (point, index, allPoints) =>
-      index === 0 || !pointsEqual(point, allPoints[index - 1]),
+  const candidatePoints = [portCenter, elbow, electricalTerminal]
+  const points = candidatePoints.filter(
+    (point, index) =>
+      index === 0 || !pointsEqual(point, candidatePoints[index - 1]),
   )
 
   return points.slice(1).flatMap((to, index) => {

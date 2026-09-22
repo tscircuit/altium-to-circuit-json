@@ -1,5 +1,10 @@
 import type { AltiumPoint } from "altiumts"
+import { applyToPoint, scale } from "transformation-matrix"
 
-export function scalePoint(point: AltiumPoint, scale: number): AltiumPoint {
-  return { x: point.x * scale, y: point.y * scale }
+export function scalePoint(
+  point: AltiumPoint,
+  altiumUnitsToMillimetersScale: number,
+): AltiumPoint {
+  const altiumToCircuitJsonTransform = scale(altiumUnitsToMillimetersScale)
+  return applyToPoint(altiumToCircuitJsonTransform, point)
 }

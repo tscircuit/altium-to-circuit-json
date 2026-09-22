@@ -1,7 +1,7 @@
 import type { AltiumRecord } from "altiumts"
 import type { AnyCircuitElement, SchematicPath } from "circuit-json"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "../document"
-import { getLocation, scalePoint } from "../recordGeometry"
+import { getLocation, scalePoint } from "../geometry"
 import { altiumColorToCss, createDirectText, getFontSize } from "../text"
 import type { SymbolRenderOptions } from "./types"
 
@@ -80,7 +80,7 @@ export function renderHierarchicalPort({
         fontSize: getFontSize(record, context),
         color: altiumColorToCss(record.getCaseInsensitive("TEXTCOLOR"), color),
         scale: context.scale,
-        rotation: 0,
+        ccwRotationDegrees: 0,
         anchor: "center",
       }),
     )

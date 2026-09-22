@@ -1,3 +1,10 @@
+import {
+  applyToPoints,
+  compose,
+  rotateDEG,
+  translate,
+} from "transformation-matrix"
+
 export function createOctagonPoints({
   x,
   y,
@@ -24,9 +31,9 @@ export function createOctagonPoints({
     { x: -halfWidth, y: halfHeight - chamfer },
     { x: -halfWidth, y: -halfHeight + chamfer },
   ]
-  const radians = (ccwRotationDegrees * Math.PI) / 180
-  return points.map((point) => ({
-    x: x + point.x * Math.cos(radians) - point.y * Math.sin(radians),
-    y: y + point.x * Math.sin(radians) + point.y * Math.cos(radians),
-  }))
+  const localToPcbTransform = compose(
+    translate(x, y),
+    rotateDEG(ccwRotationDegrees),
+  )
+  return applyToPoints(localToPcbTransform, points)
 }

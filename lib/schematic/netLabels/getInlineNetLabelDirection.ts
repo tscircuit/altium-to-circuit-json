@@ -7,11 +7,15 @@ import {
 import { getRecordDirection, isPointOnSegment } from "../connectivity"
 import { type CardinalDirection, pointsEqual } from "../geometry"
 
-export function getInlineNetLabelDirection(
-  record: AltiumRecord,
-  location: AltiumPoint,
-  connectedWires: AltiumRecord[],
-): CardinalDirection {
+export function getInlineNetLabelDirection({
+  record,
+  location,
+  connectedWires,
+}: {
+  record: AltiumRecord
+  location: AltiumPoint
+  connectedWires: AltiumRecord[]
+}): CardinalDirection {
   if (!(record instanceof AltiumSchPortRecord)) {
     return getRecordDirection(record)
   }
@@ -21,7 +25,13 @@ export function getInlineNetLabelDirection(
     for (let pointIndex = 1; pointIndex < points.length; pointIndex++) {
       const start = points[pointIndex - 1]
       const end = points[pointIndex]
-      if (!start || !end || !isPointOnSegment(location, start, end)) continue
+      if (
+        !start ||
+        !end ||
+        !isPointOnSegment({ point: location, start, end })
+      ) {
+        continue
+      }
       const other = pointsEqual(location, start)
         ? end
         : pointsEqual(location, end)

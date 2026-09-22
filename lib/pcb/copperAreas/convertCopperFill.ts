@@ -1,7 +1,7 @@
 import type { AltiumFillRecord } from "altiumts"
 import type { PcbCopperPour } from "circuit-json"
+import { milsToMillimeters } from "../geometry"
 import { mapAltiumCopperLayer } from "../layers"
-import { milsToMillimeters } from "./milsToMillimeters"
 
 export function convertCopperFill({
   record,

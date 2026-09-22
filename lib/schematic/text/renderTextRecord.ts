@@ -7,11 +7,12 @@ import type {
 import type { ConvertAltiumSchDocOptions } from "../../api"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "../document"
 import {
-  getCoordinate,
+  getCoordinateOrFallback,
   getLocation,
   getRectangle,
+  scaleLength,
   scalePoint,
-} from "../recordGeometry"
+} from "../geometry"
 import { altiumColorToCss } from "./altiumColorToCss"
 import { createDirectText } from "./createDirectText"
 import { createText } from "./createText"
@@ -55,7 +56,10 @@ export function renderTextRecord({
     if (!rectangle || !text || options.includeText === false) return []
     const fontSize = getFontSize(record, context)
     const fontFamily = getFontFamily(record, context)
-    const margin = Math.max(getCoordinate(record, "TEXTMARGIN", 0), 0)
+    const margin = Math.max(
+      getCoordinateOrFallback({ record, key: "TEXTMARGIN", fallback: 0 }),
+      0,
+    )
     const frameWidth = rectangle.maxX - rectangle.minX
     const frameHeight = rectangle.maxY - rectangle.minY
     const availableWidth = Math.max(frameWidth - margin * 2, fontSize)
@@ -63,7 +67,12 @@ export function renderTextRecord({
     const wrappedLines =
       record.getBoolean("WORDWRAP") === false
         ? text.split("\n")
-        : wrapSchematicText(text, availableWidth, fontSize, fontFamily)
+        : wrapSchematicText({
+            text,
+            maximumWidth: availableWidth,
+            fontSize,
+            fontFamily,
+          })
     const lineHeight = fontSize
     const visibleLines =
       record.getBoolean("CLIPTORECT") === false
@@ -97,7 +106,7 @@ export function renderTextRecord({
         fontSize,
         color: textColor,
         scale,
-        rotation: 0,
+        ccwRotationDegrees: 0,
         anchor: `top_${horizontalAnchor}` as SchematicText["anchor"],
       }),
     )
@@ -116,8 +125,8 @@ export function renderTextRecord({
           },
           scale,
         ),
-        width: frameWidth * scale,
-        height: frameHeight * scale,
+        width: scaleLength(frameWidth, scale),
+        height: scaleLength(frameHeight, scale),
         rotation: 0,
         stroke_width: showBorder ? strokeWidth : 0,
         color: showBorder ? color : "transparent",

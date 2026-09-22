@@ -1,8 +1,12 @@
-export function estimateSchematicTextWidth(
-  text: string,
-  fontSize: number,
-  fontFamily: string,
-): number {
+export function estimateSchematicTextWidth({
+  text,
+  fontSize,
+  fontFamily,
+}: {
+  text: string
+  fontSize: number
+  fontFamily: string
+}): number {
   if (/courier|mono/iu.test(fontFamily)) return text.length * fontSize * 0.6
   if (!/times|cambria|serif/iu.test(fontFamily)) {
     return text.length * fontSize * 0.52

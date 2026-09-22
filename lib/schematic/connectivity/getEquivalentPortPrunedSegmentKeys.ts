@@ -63,7 +63,11 @@ export function getEquivalentPortPrunedSegmentKeys({
       const from = wirePoints[pointIndex - 1]
       const to = wirePoints[pointIndex]
       if (!from || !to) continue
-      const segmentPoints = splitSegmentAtPoints(from, to, net.points)
+      const segmentPoints = splitSegmentAtPoints({
+        start: from,
+        end: to,
+        candidates: net.points,
+      })
       for (
         let splitIndex = 1;
         splitIndex < segmentPoints.length;

@@ -1,7 +1,7 @@
 import type { AltiumRecord } from "altiumts"
 import type { AnyCircuitElement } from "circuit-json"
 import type { SchematicContext } from "../document"
-import { getLocation } from "../recordGeometry"
+import { getLocation } from "../geometry"
 import { createDirectText, createLine } from "../text"
 import type { SymbolRenderOptions } from "./types"
 
@@ -60,7 +60,7 @@ export function renderPin({
     pinConglomerate === undefined || (pinConglomerate & 0x08) !== 0
   const showDesignator =
     pinConglomerate === undefined || (pinConglomerate & 0x10) !== 0
-  const rotation = orientation === 1 || orientation === 3 ? 90 : 0
+  const ccwRotationDegrees = orientation === 1 || orientation === 3 ? 90 : 0
   const directionMatchesText = orientation === 0 || orientation === 1
   const textOffset = 2
   if (showName && name) {
@@ -75,7 +75,7 @@ export function renderPin({
         fontSize: 6,
         color,
         scale: context.scale,
-        rotation,
+        ccwRotationDegrees,
         anchor: directionMatchesText ? "right" : "left",
       }),
     )
@@ -92,7 +92,7 @@ export function renderPin({
         fontSize: 6,
         color,
         scale: context.scale,
-        rotation,
+        ccwRotationDegrees,
         anchor: directionMatchesText ? "left" : "right",
       }),
     )

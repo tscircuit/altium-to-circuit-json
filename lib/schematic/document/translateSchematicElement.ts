@@ -40,14 +40,23 @@ export function translateSchematicElement(
           translateSchematicPoint(point, offset),
         ),
       }
-    case "schematic_line":
+    case "schematic_line": {
+      const start = translateSchematicPoint(
+        { x: element.x1, y: element.y1 },
+        offset,
+      )
+      const end = translateSchematicPoint(
+        { x: element.x2, y: element.y2 },
+        offset,
+      )
       return {
         ...element,
-        x1: element.x1 + offset.x,
-        x2: element.x2 + offset.x,
-        y1: element.y1 + offset.y,
-        y2: element.y2 + offset.y,
+        x1: start.x,
+        x2: end.x,
+        y1: start.y,
+        y2: end.y,
       }
+    }
     case "schematic_trace":
       return {
         ...element,

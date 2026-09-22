@@ -79,7 +79,7 @@ export function convertPcbPad({
         y,
         width,
         height,
-        ccwRotationDegrees: record.rotation,
+        ccwRotationDegrees: geometry.ccwRotationDegrees,
       }),
     }
   }
@@ -87,7 +87,7 @@ export function convertPcbPad({
     if (Math.abs(width - height) < 0.0001) {
       return { ...base, shape: "circle", radius: width / 2 }
     }
-    return record.rotation === 0
+    return geometry.ccwRotationDegrees === 0
       ? {
           ...base,
           shape: "pill",
@@ -101,11 +101,11 @@ export function convertPcbPad({
           width,
           height,
           radius: Math.min(width, height) / 2,
-          ccw_rotation: record.rotation,
+          ccw_rotation: geometry.ccwRotationDegrees,
         }
   }
 
-  return record.rotation === 0
+  return geometry.ccwRotationDegrees === 0
     ? { ...base, shape: "rect", width, height, corner_radius: cornerRadius }
     : {
         ...base,
@@ -113,6 +113,6 @@ export function convertPcbPad({
         width,
         height,
         corner_radius: cornerRadius,
-        ccw_rotation: record.rotation,
+        ccw_rotation: geometry.ccwRotationDegrees,
       }
 }

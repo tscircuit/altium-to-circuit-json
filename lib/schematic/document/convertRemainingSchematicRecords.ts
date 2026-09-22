@@ -9,7 +9,10 @@ export function convertRemainingSchematicRecords(
     if (context.handledRecords.has(record)) continue
     if (!shouldRenderSchematicRecord(record, context)) continue
     context.elements.push(
-      ...convertSchematicRecord(record, recordIndex, context, context.options),
+      ...convertSchematicRecord(
+        { record, index: recordIndex, options: context.options },
+        context,
+      ),
     )
   }
 }

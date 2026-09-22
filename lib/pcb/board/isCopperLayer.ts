@@ -1,4 +1,4 @@
-import { normalizeLayer } from "./normalizeLayer"
+import { normalizeLayer } from "../layers"
 
 export function isCopperLayer(layer: string | undefined): boolean {
   const normalized = normalizeLayer(layer)

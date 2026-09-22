@@ -28,7 +28,7 @@ export function createText({
     fontSize: getFontSize(record, context),
     color,
     scale: context.scale,
-    rotation: positioning.rotation,
+    ccwRotationDegrees: positioning.ccwRotationDegrees,
     anchor: positioning.anchor,
   })
 }

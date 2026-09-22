@@ -71,12 +71,16 @@ export function selectCircuitJsonSymbol({
     ) {
       return []
     }
-    const assignments = assignConvertedPortsToSymbolPorts(ports, symbol, {
-      allowFunctionalPortReuse: classification === "mosfet",
-      geometryInterchangeableLabels:
-        classification === "crystal" && ports.length === 4
-          ? new Set(["2", "4"])
-          : undefined,
+    const assignments = assignConvertedPortsToSymbolPorts({
+      ports,
+      symbol,
+      options: {
+        allowFunctionalPortReuse: classification === "mosfet",
+        geometryInterchangeableLabels:
+          classification === "crystal" && ports.length === 4
+            ? new Set(["2", "4"])
+            : undefined,
+      },
     })
     return assignments.length === ports.length
       ? [{ assignments, name, symbol } satisfies SymbolSelection]

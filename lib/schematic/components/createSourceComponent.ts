@@ -10,19 +10,19 @@ import {
 import {
   classifyComponent,
   getMosfetVariant,
-  getPrimaryComponentValue,
+  getPrimaryComponentText,
 } from "../symbols"
-import { parseFiniteComponentValue } from "./parseFiniteComponentValue"
+import { parseFiniteComponentRating } from "./parseFiniteComponentRating"
 
 export function createSourceComponent({
-  componentValue,
+  displayText,
   designator,
   libraryReference,
   manufacturerPartNumber,
   pinCount,
   sourceComponentId,
 }: {
-  componentValue: string
+  displayText: string
   designator: string
   libraryReference: string
   manufacturerPartNumber?: string
@@ -30,25 +30,25 @@ export function createSourceComponent({
   sourceComponentId: string
 }): AnyCircuitElement {
   const classification = classifyComponent({ designator, libraryReference })
-  const primaryValue = getPrimaryComponentValue(componentValue)
+  const primaryComponentText = getPrimaryComponentText(displayText)
   const common = {
     type: "source_component" as const,
     display_name: designator,
-    display_value: componentValue || undefined,
+    display_value: displayText || undefined,
     manufacturer_part_number: manufacturerPartNumber,
     name: designator,
     source_component_id: sourceComponentId,
   }
 
   if (classification === "resistor") {
-    const resistance = parseFiniteComponentValue({
+    const resistance = parseFiniteComponentRating({
       componentUnit: "Ω",
-      componentValue: primaryValue,
+      displayText: primaryComponentText,
     })
     if (resistance !== undefined) {
       const parsed = source_simple_resistor.safeParse({
         ...common,
-        display_resistance: componentValue || undefined,
+        display_resistance: displayText || undefined,
         ftype: "simple_resistor",
         resistance,
       })
@@ -56,14 +56,14 @@ export function createSourceComponent({
     }
   }
   if (classification === "capacitor") {
-    const capacitance = parseFiniteComponentValue({
+    const capacitance = parseFiniteComponentRating({
       componentUnit: "F",
-      componentValue: primaryValue,
+      displayText: primaryComponentText,
     })
     if (capacitance !== undefined) {
       const parsed = source_simple_capacitor.safeParse({
         ...common,
-        display_capacitance: componentValue || undefined,
+        display_capacitance: displayText || undefined,
         ftype: "simple_capacitor",
         capacitance,
       })
@@ -71,14 +71,14 @@ export function createSourceComponent({
     }
   }
   if (classification === "inductor") {
-    const inductance = parseFiniteComponentValue({
+    const inductance = parseFiniteComponentRating({
       componentUnit: "H",
-      componentValue: primaryValue,
+      displayText: primaryComponentText,
     })
     if (inductance !== undefined) {
       const parsed = source_simple_inductor.safeParse({
         ...common,
-        display_inductance: componentValue || undefined,
+        display_inductance: displayText || undefined,
         ftype: "simple_inductor",
         inductance,
       })
@@ -86,9 +86,9 @@ export function createSourceComponent({
     }
   }
   if (classification === "crystal" && (pinCount === 2 || pinCount === 4)) {
-    const frequency = parseFiniteComponentValue({
+    const frequency = parseFiniteComponentRating({
       componentUnit: "Hz",
-      componentValue,
+      displayText,
     })
     if (frequency !== undefined) {
       const parsed = source_simple_crystal.safeParse({

@@ -8,14 +8,18 @@ import type { ConvertedPort, SymbolPortAssignment } from "../model"
 import { compareConvertedPorts } from "./compareConvertedPorts"
 import { normalizeFunctionalPortLabel } from "./normalizeFunctionalPortLabel"
 
-export function assignConvertedPortsToSymbolPorts(
-  ports: ConvertedPort[],
-  symbol: SchSymbol,
-  options: {
+export function assignConvertedPortsToSymbolPorts({
+  ports,
+  symbol,
+  options = {},
+}: {
+  ports: ConvertedPort[]
+  symbol: SchSymbol
+  options?: {
     allowFunctionalPortReuse?: boolean
     geometryInterchangeableLabels?: Set<string>
-  } = {},
-): SymbolPortAssignment[] {
+  }
+}): SymbolPortAssignment[] {
   const unusedSymbolPorts = new Set(symbol.ports)
   const orderedPorts = [...ports].sort(compareConvertedPorts)
   const assignments: SymbolPortAssignment[] = []

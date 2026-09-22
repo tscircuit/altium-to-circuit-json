@@ -1,5 +1,6 @@
 import type { AltiumPoint } from "altiumts"
 import type { SchSymbol } from "schematic-symbols"
+import { applyToPoint, translate } from "transformation-matrix"
 import { directionToSide } from "../connectivity"
 import {
   getDirectionForVector,
@@ -28,10 +29,8 @@ export function applyNativeSymbolPortGeometry({
   for (const [symbolPort, assignments] of assignmentsBySymbolPort) {
     const offset = subtractPoints(symbolPort, selection.symbol.center)
     const direction = getDirectionForVector(offset)
-    const symbolPortCenter = {
-      x: center.x + offset.x,
-      y: center.y + offset.y,
-    }
+    const symbolToSchematicTransform = translate(center.x, center.y)
+    const symbolPortCenter = applyToPoint(symbolToSchematicTransform, offset)
     const representative = assignments.sort(
       (left, right) =>
         getPointDistance(

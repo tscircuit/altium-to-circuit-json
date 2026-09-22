@@ -1,16 +1,9 @@
 import {
   type AltiumPoint,
-  type AltiumRecord,
   type AltiumSchDoc,
-  AltiumSchJunctionRecord,
-  AltiumSchLabelRecord,
-  AltiumSchNetLabelRecord,
-  AltiumSchPortRecord,
-  AltiumSchPowerPortRecord,
-  AltiumSchWireRecord,
   getSchematicRecordPoints,
 } from "altiumts"
-import { getLocation, pointKey, type SchematicPointKey } from "../geometry"
+import { pointKey, type SchematicPointKey } from "../geometry"
 import type {
   ConvertedPort,
   SchematicSegment,
@@ -18,11 +11,12 @@ import type {
   SemanticNetGraph,
 } from "../model"
 import { addGraphPoint } from "./addGraphPoint"
+import { createConnectedWiresByRecord } from "./createConnectedWiresByRecord"
 import { getElectricalRecordName } from "./getElectricalRecordName"
 import { getOrCreateSemanticNetGroup } from "./getOrCreateSemanticNetGroup"
-import { getPortConnectionGeometry } from "./getPortConnectionGeometry"
+import { getPositionedElectricalRecords } from "./getPositionedElectricalRecords"
 import { isPointOnSegment } from "./isPointOnSegment"
-import { mergeSemanticNetGroup } from "./mergeSemanticNetGroup"
+import { mergeSemanticNetGroups } from "./mergeSemanticNetGroups"
 import { PointDisjointSet } from "./PointDisjointSet"
 import type { MutableSemanticNet } from "./types"
 
@@ -38,14 +32,14 @@ export function buildSemanticNetGraph(
   convertedPorts: ConvertedPort[],
 ): SemanticNetGraph {
   const disjointSet = new PointDisjointSet()
-  const pointValues = new Map<SchematicPointKey, AltiumPoint>()
+  const pointsByKey = new Map<SchematicPointKey, AltiumPoint>()
   const wireRecords = document.wires
   const segments: SchematicSegment[] = []
 
   for (const wire of wireRecords) {
     const points = getSchematicRecordPoints(wire)
     for (const point of points) {
-      addGraphPoint(disjointSet, pointValues, point)
+      addGraphPoint({ disjointSet, pointsByKey, point })
     }
     for (let index = 1; index < points.length; index++) {
       const start = points[index - 1]
@@ -56,22 +50,7 @@ export function buildSemanticNetGraph(
     }
   }
 
-  const positionedRecords = document.records.flatMap((record) => {
-    if (
-      !(record instanceof AltiumSchLabelRecord) &&
-      !(record instanceof AltiumSchNetLabelRecord) &&
-      !(record instanceof AltiumSchPortRecord) &&
-      !(record instanceof AltiumSchPowerPortRecord) &&
-      !(record instanceof AltiumSchJunctionRecord)
-    ) {
-      return []
-    }
-    const point =
-      record instanceof AltiumSchPortRecord
-        ? getPortConnectionGeometry(record, segments)?.anchor
-        : getLocation(record)
-    return point ? [{ point, record }] : []
-  })
+  const positionedRecords = getPositionedElectricalRecords(document, segments)
   const positionedPins = convertedPorts.map(({ point, record }) => ({
     point,
     record,
@@ -87,9 +66,9 @@ export function buildSemanticNetGraph(
   ]
 
   for (const point of joinPoints) {
-    addGraphPoint(disjointSet, pointValues, point)
+    addGraphPoint({ disjointSet, pointsByKey, point })
     for (const segment of segments) {
-      if (isPointOnSegment(point, segment.start, segment.end)) {
+      if (isPointOnSegment({ point, start: segment.start, end: segment.end })) {
         disjointSet.union(pointKey(point), pointKey(segment.start))
       }
     }
@@ -97,7 +76,7 @@ export function buildSemanticNetGraph(
 
   const groupedByRoot = new Map<SchematicPointKey, MutableSemanticNet>()
 
-  for (const point of pointValues.values()) {
+  for (const point of pointsByKey.values()) {
     getOrCreateSemanticNetGroup({
       disjointSet,
       groupedByRoot,
@@ -125,42 +104,8 @@ export function buildSemanticNetGraph(
     if (name) group.names.add(name)
   }
 
-  const connectedWiresByRecord = new Map<AltiumRecord, AltiumRecord[]>()
-  for (const group of groupedByRoot.values()) {
-    const wires = [...group.records].filter(
-      (record): record is AltiumSchWireRecord =>
-        record instanceof AltiumSchWireRecord,
-    )
-    for (const record of group.records) {
-      connectedWiresByRecord.set(record, wires)
-    }
-  }
-
-  const mergedGroups: MutableSemanticNet[] = []
-  for (const group of groupedByRoot.values()) {
-    if (group.records.size === 0) continue
-    const normalizedNames = new Set(
-      [...group.names].map((name) => name.trim().toUpperCase()),
-    )
-    const matches = mergedGroups.filter((candidate) =>
-      [...candidate.names].some((name) =>
-        normalizedNames.has(name.trim().toUpperCase()),
-      ),
-    )
-    if (matches.length === 0 || normalizedNames.size === 0) {
-      mergedGroups.push(group)
-      continue
-    }
-    const target = matches[0]
-    if (!target) continue
-    mergeSemanticNetGroup(target, group)
-    for (const duplicate of matches.slice(1)) {
-      mergeSemanticNetGroup(target, duplicate)
-      const duplicateIndex = mergedGroups.indexOf(duplicate)
-      if (duplicateIndex >= 0) mergedGroups.splice(duplicateIndex, 1)
-    }
-  }
-
+  const connectedWiresByRecord = createConnectedWiresByRecord(groupedByRoot)
+  const mergedGroups = mergeSemanticNetGroups(groupedByRoot)
   const nets: SemanticNet[] = mergedGroups.map((group) => ({
     id: group.id,
     names: [...group.names],

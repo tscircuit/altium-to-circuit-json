@@ -1,6 +1,6 @@
 import type { AltiumPcbContour } from "altiumts"
 import type { Point } from "circuit-json"
-import { milsToMillimeters } from "./milsToMillimeters"
+import { milsToMillimeters } from "../geometry"
 
 export function contourToPoints(contour: AltiumPcbContour): Point[] {
   const points = contour.points.map((point) => ({

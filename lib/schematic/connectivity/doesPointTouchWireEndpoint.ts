@@ -7,6 +7,10 @@ export function doesPointTouchWireEndpoint(
   wireSegments: SchematicSegment[],
 ): boolean {
   return wireSegments.some((segment) =>
-    isPointNearSegmentEndpoint(point, segment.start, segment.end),
+    isPointNearSegmentEndpoint({
+      point,
+      start: segment.start,
+      end: segment.end,
+    }),
   )
 }

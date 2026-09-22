@@ -7,15 +7,14 @@ import {
   getAltiumBounds,
   getPcbRegionGeometry,
 } from "altiumts"
-import { stitchConnectedAltiumPaths } from "../geometry"
+import { removeClosingPoint, stitchConnectedAltiumPaths } from "../geometry"
+import { isKeepoutLayer } from "../layers"
 import { boundsContainWithTolerance } from "./boundsContainWithTolerance"
 import { MAX_ENDPOINT_GAP_MILS, MAX_PLACEMENT_OVERHANG_MILS } from "./constants"
 import { getArcPoints } from "./getArcPoints"
 import { getBoundsArea } from "./getBoundsArea"
 import { getPlacedContentBounds } from "./getPlacedContentBounds"
 import { isClosedPath } from "./isClosedPath"
-import { isKeepoutLayer } from "./isKeepoutLayer"
-import { removeClosingPoint } from "./removeClosingPoint"
 
 export function getTightestEnclosingKeepoutOutline(
   document: AltiumPcbDocument,
@@ -29,7 +28,14 @@ export function getTightestEnclosingKeepoutOutline(
 
     if (record instanceof AltiumRegionRecord) {
       const outline = getPcbRegionGeometry(record).outline.points
-      if (outline.length >= 3) closedOutlines.push(removeClosingPoint(outline))
+      if (outline.length >= 3) {
+        closedOutlines.push(
+          removeClosingPoint({
+            points: outline,
+            maxEndpointGapMils: MAX_ENDPOINT_GAP_MILS,
+          }),
+        )
+      }
       continue
     }
 
@@ -49,7 +55,12 @@ export function getTightestEnclosingKeepoutOutline(
     maxEndpointGapMils: MAX_ENDPOINT_GAP_MILS,
   })) {
     if (!isClosedPath(path)) continue
-    closedOutlines.push(removeClosingPoint(path))
+    closedOutlines.push(
+      removeClosingPoint({
+        points: path,
+        maxEndpointGapMils: MAX_ENDPOINT_GAP_MILS,
+      }),
+    )
   }
 
   const placedBounds = getPlacedContentBounds(document)

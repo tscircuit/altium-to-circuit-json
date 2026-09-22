@@ -1,1 +1,0 @@
-export const MILS_TO_MILLIMETERS = 0.0254

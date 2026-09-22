@@ -1,5 +1,6 @@
 import type { AltiumRecord } from "altiumts"
 import type { SchematicRect } from "circuit-json"
+import { scaleLength, scalePoint } from "../geometry"
 import { SCHEMATIC_SHEET_ID } from "./constants"
 import { getAltiumSheetDimensions } from "./getAltiumSheetDimensions"
 
@@ -12,9 +13,9 @@ export function createSheetBorder(
     type: "schematic_rect",
     schematic_rect_id: "schematic_rect_altium_sheet_border",
     schematic_sheet_id: SCHEMATIC_SHEET_ID,
-    center: { x: (width * scale) / 2, y: (height * scale) / 2 },
-    width: width * scale,
-    height: height * scale,
+    center: scalePoint({ x: width / 2, y: height / 2 }, scale),
+    width: scaleLength(width, scale),
+    height: scaleLength(height, scale),
     rotation: 0,
     stroke_width: 0.1,
     color: "#334155",

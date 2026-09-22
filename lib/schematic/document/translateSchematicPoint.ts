@@ -1,5 +1,7 @@
 import type { Point } from "circuit-json"
+import { applyToPoint, translate } from "transformation-matrix"
 
 export function translateSchematicPoint(point: Point, offset: Point): Point {
-  return { x: point.x + offset.x, y: point.y + offset.y }
+  const sourceToSheetTransform = translate(offset.x, offset.y)
+  return applyToPoint(sourceToSheetTransform, point)
 }

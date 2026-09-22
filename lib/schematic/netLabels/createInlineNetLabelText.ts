@@ -35,14 +35,22 @@ export function createInlineNetLabelText({
   recordIndex: number
   sourceTraceId: string
 }): SchematicText {
-  const direction = getInlineNetLabelDirection(record, location, connectedWires)
+  const direction = getInlineNetLabelDirection({
+    record,
+    location,
+    connectedWires,
+  })
   const scaledLocation = scalePoint(location, options.scale)
-  const fontSize = getInlineNetLabelFontSize(record, document, options.scale)
-  const fontScale = fontSize / DEFAULT_INLINE_NET_LABEL_FONT_SIZE
+  const fontSize = getInlineNetLabelFontSize({
+    record,
+    document,
+    altiumUnitsToMillimetersScale: options.scale,
+  })
+  const fontSizeRatio = fontSize / DEFAULT_INLINE_NET_LABEL_FONT_SIZE
   const textWidth =
     (name.length * INLINE_NET_LABEL_CHARACTER_WIDTH +
       INLINE_NET_LABEL_HORIZONTAL_PADDING) *
-    fontScale
+    fontSizeRatio
   const isVertical = direction === "up" || direction === "down"
   const directionSign = direction === "left" || direction === "down" ? -1 : 1
   const isTerminalPort = record instanceof AltiumSchPortRecord

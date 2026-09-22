@@ -3,7 +3,7 @@ import type { SchematicText } from "circuit-json"
 
 export function getTextPositioning(record: AltiumRecord): {
   anchor: SchematicText["anchor"]
-  rotation: number
+  ccwRotationDegrees: number
 } {
   const justification = Math.min(
     Math.max(Math.round(record.getNumber("JUSTIFICATION") ?? 0), 0),
@@ -20,5 +20,8 @@ export function getTextPositioning(record: AltiumRecord): {
     horizontal === "center" && vertical === "center"
       ? "center"
       : (`${vertical}_${horizontal}` as SchematicText["anchor"])
-  return { anchor, rotation: orientation === 1 || orientation === 3 ? 90 : 0 }
+  return {
+    anchor,
+    ccwRotationDegrees: orientation === 1 || orientation === 3 ? 90 : 0,
+  }
 }

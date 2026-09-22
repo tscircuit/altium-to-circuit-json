@@ -1,3 +1,5 @@
+import { applyToPoint, type Matrix } from "transformation-matrix"
+
 export function getPowerPortPoint({
   across = 0,
   along,
@@ -11,8 +13,13 @@ export function getPowerPortPoint({
   location: { x: number; y: number }
   perpendicular: { x: number; y: number }
 }): { x: number; y: number } {
-  return {
-    x: location.x + direction.x * along + perpendicular.x * across,
-    y: location.y + direction.y * along + perpendicular.y * across,
+  const powerPortToSheetTransform: Matrix = {
+    a: direction.x,
+    b: direction.y,
+    c: perpendicular.x,
+    d: perpendicular.y,
+    e: location.x,
+    f: location.y,
   }
+  return applyToPoint(powerPortToSheetTransform, { x: along, y: across })
 }

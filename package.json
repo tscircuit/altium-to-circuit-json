@@ -46,10 +46,11 @@
     "vercel-build": "bun run build:site"
   },
   "dependencies": {
-    "altiumts": "github:tscircuit/altiumts#c309152f0ddf739d83aed981b424a5c0fd1efcbd",
+    "altiumts": "github:tscircuit/altiumts#1a4c8ec24fa7c87de85ff9093a7dd0b6b2fb6a39",
     "circuit-json": "^0.0.475",
     "format-si-unit": "^0.0.11",
-    "schematic-symbols": "^0.0.238"
+    "schematic-symbols": "^0.0.238",
+    "transformation-matrix": "^2.16.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",

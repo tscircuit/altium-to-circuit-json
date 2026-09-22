@@ -4,12 +4,11 @@ import {
   AltiumTrackRecord,
 } from "altiumts"
 import type { PcbCourtyardOutline } from "circuit-json"
-import { toMillimeterPoint } from "../geometry"
+import { removeClosingPoint, toMillimeterPoint } from "../geometry"
 import { getPcbComponentId } from "../identifiers"
 import { getRecordLayer, isCourtyardLayer, mapCourtyardLayer } from "../layers"
 import { getCourtyardRecordPoints } from "./getCourtyardRecordPoints"
 import { isClosedAltiumPath } from "./isClosedAltiumPath"
-import { removeClosingPoint } from "./removeClosingPoint"
 import { stitchCourtyardPaths } from "./stitchCourtyardPaths"
 import type { CourtyardPath } from "./types"
 
@@ -47,7 +46,10 @@ export function convertPcbCourtyards(
   const courtyards: PcbCourtyardOutline[] = []
   for (const path of stitchCourtyardPaths(paths)) {
     if (!isClosedAltiumPath(path.points)) continue
-    const outline = removeClosingPoint(path.points).map(toMillimeterPoint)
+    const outline = removeClosingPoint({
+      points: path.points,
+      maxEndpointGapMils: 0.01,
+    }).map(toMillimeterPoint)
     if (outline.length < 3) continue
     courtyards.push({
       type: "pcb_courtyard_outline",

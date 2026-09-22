@@ -1,7 +1,7 @@
 import type { AltiumPoint } from "altiumts"
 import type { SchematicText } from "circuit-json"
 import { SCHEMATIC_SHEET_ID } from "../document"
-import { scalePoint } from "../recordGeometry"
+import { scaleLength, scalePoint } from "../geometry"
 
 export function createDirectText({
   id,
@@ -10,7 +10,7 @@ export function createDirectText({
   fontSize,
   color,
   scale,
-  rotation,
+  ccwRotationDegrees,
   anchor,
 }: {
   id: string
@@ -19,7 +19,7 @@ export function createDirectText({
   fontSize: number
   color: string
   scale: number
-  rotation: number
+  ccwRotationDegrees: number
   anchor: SchematicText["anchor"]
 }): SchematicText {
   return {
@@ -27,9 +27,9 @@ export function createDirectText({
     schematic_text_id: id,
     schematic_sheet_id: SCHEMATIC_SHEET_ID,
     text,
-    font_size: Math.max(fontSize * scale, 0.2),
+    font_size: Math.max(scaleLength(fontSize, scale), 0.2),
     position: scalePoint(location, scale),
-    rotation,
+    rotation: ccwRotationDegrees,
     anchor,
     color,
   }

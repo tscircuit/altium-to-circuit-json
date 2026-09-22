@@ -5,7 +5,7 @@ import {
   directionToSide,
   VECTOR_BY_DIRECTION,
 } from "../connectivity"
-import { getLocation, scalePoint } from "../geometry"
+import { getLocation, scaleLength, scalePoint } from "../geometry"
 import { uniqueStrings } from "../identifiers"
 import type { ConvertedPort, SemanticSchematicOptions } from "../model"
 import { parsePinNumber } from "./parsePinNumber"
@@ -67,7 +67,7 @@ export function convertComponentPin({
     type: "schematic_port",
     center: scalePoint(terminalPoint, options.scale),
     ...(showName && name ? { display_pin_label: name } : {}),
-    distance_from_component_edge: pinLength * options.scale,
+    distance_from_component_edge: scaleLength(pinLength, options.scale),
     facing_direction: direction,
     is_connected: false,
     schematic_component_id: schematicComponentId,

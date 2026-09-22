@@ -1,10 +1,14 @@
 import type { AltiumPoint } from "altiumts"
 
-export function isPointOnSegment(
-  point: AltiumPoint,
-  start: AltiumPoint,
-  end: AltiumPoint,
-): boolean {
+export function isPointOnSegment({
+  point,
+  start,
+  end,
+}: {
+  point: AltiumPoint
+  start: AltiumPoint
+  end: AltiumPoint
+}): boolean {
   const dx = end.x - start.x
   const dy = end.y - start.y
   const cross = (point.x - start.x) * dy - (point.y - start.y) * dx

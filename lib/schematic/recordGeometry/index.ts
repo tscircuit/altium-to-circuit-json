@@ -1,6 +1,0 @@
-export * from "./getCoordinate"
-export * from "./getCorner"
-export * from "./getLocation"
-export * from "./getRectangle"
-export * from "./scalePoint"
-export * from "./types"

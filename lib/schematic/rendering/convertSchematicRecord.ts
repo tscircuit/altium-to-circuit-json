@@ -2,7 +2,7 @@ import type { AltiumRecord } from "altiumts"
 import type { AnyCircuitElement, SchematicCircle } from "circuit-json"
 import type { ConvertAltiumSchDocOptions } from "../../api"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "../document"
-import { getLocation, scalePoint } from "../recordGeometry"
+import { getLocation, scaleLength, scalePoint } from "../geometry"
 import { altiumColorToCss, createLine, renderTextRecord } from "../text"
 import { renderHierarchicalPort } from "./renderHierarchicalPort"
 import { renderPin } from "./renderPin"
@@ -10,16 +10,22 @@ import { renderPowerPort } from "./renderPowerPort"
 import { renderPrimitiveRecord } from "./renderPrimitiveRecord"
 
 export function convertSchematicRecord(
-  record: AltiumRecord,
-  index: number,
+  {
+    record,
+    index,
+    options,
+  }: {
+    record: AltiumRecord
+    index: number
+    options: ConvertAltiumSchDocOptions
+  },
   context: SchematicContext,
-  options: ConvertAltiumSchDocOptions,
 ): AnyCircuitElement[] {
   const kind = record.recordKind
   const scale = context.scale
   const color = altiumColorToCss(record.getCaseInsensitive("COLOR"), "#1f2937")
   const strokeWidth = Math.max(
-    Number(record.getCaseInsensitive("LINEWIDTH") ?? 1) * scale,
+    scaleLength(Number(record.getCaseInsensitive("LINEWIDTH") ?? 1), scale),
     0.05,
   )
 
@@ -63,7 +69,7 @@ export function convertSchematicRecord(
     // altiumts renders the "Small Cross" no-ERC symbol with four Altium
     // coordinate units on either side of its anchor.
     const radius = 4
-    const noErcStrokeWidth = Math.max(scale, 0.02)
+    const noErcStrokeWidth = Math.max(scaleLength(1, scale), 0.02)
     return [
       createLine({
         index,

@@ -1,16 +1,12 @@
-import type { AltiumPadRecord, getAltiumPcbPadGeometry } from "altiumts"
+import type { getAltiumPcbPadGeometry } from "altiumts"
+import { applyToPoint, rotateDEG } from "transformation-matrix"
 
 export function getRotatedHoleOffset(
-  record: AltiumPadRecord,
   geometry: ReturnType<typeof getAltiumPcbPadGeometry>,
 ): { x: number; y: number } {
-  const ccwPadRotationRadians = (record.rotation * Math.PI) / 180
-  return {
-    x:
-      geometry.holeOffsetXMils * Math.cos(ccwPadRotationRadians) -
-      geometry.holeOffsetYMils * Math.sin(ccwPadRotationRadians),
-    y:
-      geometry.holeOffsetXMils * Math.sin(ccwPadRotationRadians) +
-      geometry.holeOffsetYMils * Math.cos(ccwPadRotationRadians),
-  }
+  const padToPcbTransform = rotateDEG(geometry.ccwRotationDegrees)
+  return applyToPoint(padToPcbTransform, {
+    x: geometry.holeOffsetXMils,
+    y: geometry.holeOffsetYMils,
+  })
 }

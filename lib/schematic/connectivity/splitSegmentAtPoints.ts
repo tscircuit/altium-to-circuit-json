@@ -2,11 +2,15 @@ import type { AltiumPoint } from "altiumts"
 import { pointKey, type SchematicPointKey } from "../geometry"
 import { isPointOnSegment } from "./isPointOnSegment"
 
-export function splitSegmentAtPoints(
-  start: AltiumPoint,
-  end: AltiumPoint,
-  candidates: AltiumPoint[],
-): AltiumPoint[] {
+export function splitSegmentAtPoints({
+  start,
+  end,
+  candidates,
+}: {
+  start: AltiumPoint
+  end: AltiumPoint
+  candidates: AltiumPoint[]
+}): AltiumPoint[] {
   const dx = end.x - start.x
   const dy = end.y - start.y
   const lengthSquared = dx * dx + dy * dy
@@ -17,7 +21,7 @@ export function splitSegmentAtPoints(
     [pointKey(end), end],
   ])
   for (const candidate of candidates) {
-    if (isPointOnSegment(candidate, start, end)) {
+    if (isPointOnSegment({ point: candidate, start, end })) {
       pointsByKey.set(pointKey(candidate), candidate)
     }
   }
