@@ -24,14 +24,11 @@ interface AltiumPadHoleGeometry {
 export function getAltiumPadGeometry(
   record: AltiumPadRecord,
 ): AltiumPadGeometry | undefined {
-  const layerOrdinal = getPadLayerOrdinal(record)
-  const isBottomLayer = layerOrdinal === BOTTOM_LAYER_ORDINAL
-  const size = isBottomLayer ? (record.bottomSize ?? record.size) : record.size
+  const layerOrdinal = getPadStackLayerOrdinal(record)
+  const size = getPadSize(record, layerOrdinal)
   if (!size) return undefined
 
-  const defaultShape = isBottomLayer
-    ? (record.bottomShape ?? record.shape)
-    : record.shape
+  const defaultShape = getPadShape(record, layerOrdinal)
   const alternateShape = record
     .getCaseInsensitive(`LAYER${layerOrdinal}ALTSHAPE`)
     ?.toUpperCase()
@@ -57,7 +54,7 @@ export function getAltiumPadGeometry(
 export function getAltiumPadHoleGeometry(
   record: AltiumPadRecord,
 ): AltiumPadHoleGeometry {
-  const layerOrdinal = getPadLayerOrdinal(record)
+  const layerOrdinal = getPadStackLayerOrdinal(record)
   const offsetXMils = getPadMeasurement({
     record,
     keys: [`LAYER${layerOrdinal}HOLEXOFFSET`, `PADXOFFSET${layerOrdinal}`],
@@ -97,11 +94,65 @@ export function getAltiumSlotHoleSize(record: AltiumPadRecord): {
   }
 }
 
-function getPadLayerOrdinal(record: AltiumPadRecord): number {
-  const normalizedLayer = record.layer?.replaceAll(" ", "").toUpperCase()
-  return normalizedLayer === "BOTTOM" || normalizedLayer === "BOTTOMLAYER"
-    ? BOTTOM_LAYER_ORDINAL
-    : TOP_LAYER_ORDINAL
+function getPadStackLayerOrdinal(record: AltiumPadRecord): number {
+  const normalizedLayer = (record.layer ?? "")
+    .replace(/[\s_.-]+/gu, "")
+    .toUpperCase()
+  if (normalizedLayer === "BOTTOM" || normalizedLayer === "BOTTOMLAYER") {
+    return BOTTOM_LAYER_ORDINAL
+  }
+
+  const innerLayer = /^(?:MIDLAYER|MID|INTERNALPLANE)(\d+)$/u.exec(
+    normalizedLayer,
+  )
+  if (!innerLayer?.[1]) return TOP_LAYER_ORDINAL
+  return Math.min(Math.max(Number(innerLayer[1]), 1), 30)
+}
+
+function getPadSize(
+  record: AltiumPadRecord,
+  layerOrdinal: number,
+): { height: number; width: number } | undefined {
+  if (layerOrdinal === TOP_LAYER_ORDINAL) return record.size
+  if (layerOrdinal === BOTTOM_LAYER_ORDINAL) {
+    return record.bottomSize ?? record.size
+  }
+
+  if (record.padMode === 2 && layerOrdinal >= 2) {
+    const widthMils = getOptionalPadMeasurement(record, [
+      `LAYER${layerOrdinal}XSIZE`,
+      "MIDXSIZE",
+      "XSIZE",
+    ])
+    const heightMils = getOptionalPadMeasurement(record, [
+      `LAYER${layerOrdinal}YSIZE`,
+      "MIDYSIZE",
+      "YSIZE",
+    ])
+    if (widthMils !== undefined) {
+      return { height: heightMils ?? widthMils, width: widthMils }
+    }
+  }
+
+  return record.middleSize ?? record.size
+}
+
+function getPadShape(
+  record: AltiumPadRecord,
+  layerOrdinal: number,
+): string | undefined {
+  if (layerOrdinal === TOP_LAYER_ORDINAL) return record.shape
+  if (layerOrdinal === BOTTOM_LAYER_ORDINAL) {
+    return record.bottomShape ?? record.shape
+  }
+  if (record.padMode === 2 && layerOrdinal >= 2) {
+    return (
+      record.getCaseInsensitive(`LAYER${layerOrdinal}SHAPE`) ??
+      record.middleShape ??
+      record.shape
+    )
+  }
+  return record.middleShape ?? record.shape
 }
 
 function getPadMeasurement({
@@ -111,11 +162,18 @@ function getPadMeasurement({
   record: AltiumPadRecord
   keys: readonly string[]
 }): number {
+  return getOptionalPadMeasurement(record, keys) ?? 0
+}
+
+function getOptionalPadMeasurement(
+  record: AltiumPadRecord,
+  keys: readonly string[],
+): number | undefined {
   for (const key of keys) {
     const measurementMils = parseAltiumMeasurementToMils(
       record.getCaseInsensitive(key),
     )
     if (measurementMils !== undefined) return measurementMils
   }
-  return 0
+  return undefined
 }
