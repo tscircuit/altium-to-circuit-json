@@ -43,6 +43,10 @@ import type {
 } from "circuit-json"
 import { convertAltiumCopperAreas } from "./pcb/convert-altium-copper-areas"
 import {
+  convertAltiumPcbBottomSolderPaste,
+  isAltiumPcbBottomSolderPasteRecord,
+} from "./pcb/convert-altium-pcb-solder-paste"
+import {
   getAltiumPadGeometry,
   getAltiumPadHoleGeometry,
   getAltiumSlotHoleSize,
@@ -77,6 +81,7 @@ export interface ConvertAltiumPcbDocOptions {
   includeDimensions?: boolean
   includePads?: boolean
   includeSilkscreen?: boolean
+  includeSolderPaste?: boolean
   includeTraces?: boolean
   includeVias?: boolean
 }
@@ -144,6 +149,17 @@ export function convertAltiumPcbDocToCircuitJson(
   }
 
   for (const [index, record] of document.records.entries()) {
+    if (isAltiumPcbBottomSolderPasteRecord(record)) {
+      if (options.includeSolderPaste !== false) {
+        const solderPaste = convertAltiumPcbBottomSolderPaste({
+          record,
+          recordIndex: index,
+        })
+        if (solderPaste) elements.push(solderPaste)
+      }
+      continue
+    }
+
     if (
       record instanceof AltiumArcRecord &&
       isKeepoutLayer(record.layer) &&
