@@ -64,31 +64,40 @@ export function translateSchematicElement(
   element: AnyCircuitElement,
   offset: Point,
 ): AnyCircuitElement {
-  const translatePoint = (point: Point): Point => ({
-    x: point.x + offset.x,
-    y: point.y + offset.y,
-  })
   switch (element.type) {
     case "schematic_component":
     case "schematic_port":
     case "schematic_rect":
     case "schematic_circle":
     case "schematic_arc":
-      return { ...element, center: translatePoint(element.center) }
+      return {
+        ...element,
+        center: translateSchematicPoint(element.center, offset),
+      }
     case "schematic_net_label":
       return {
         ...element,
-        center: translatePoint(element.center),
+        center: translateSchematicPoint(element.center, offset),
         ...(element.anchor_position
-          ? { anchor_position: translatePoint(element.anchor_position) }
+          ? {
+              anchor_position: translateSchematicPoint(
+                element.anchor_position,
+                offset,
+              ),
+            }
           : {}),
       }
     case "schematic_text":
-      return { ...element, position: translatePoint(element.position) }
+      return {
+        ...element,
+        position: translateSchematicPoint(element.position, offset),
+      }
     case "schematic_path":
       return {
         ...element,
-        points: element.points.map(translatePoint),
+        points: element.points.map((point) =>
+          translateSchematicPoint(point, offset),
+        ),
       }
     case "schematic_line":
       return {
@@ -103,14 +112,20 @@ export function translateSchematicElement(
         ...element,
         edges: element.edges.map((edge) => ({
           ...edge,
-          from: translatePoint(edge.from),
-          to: translatePoint(edge.to),
+          from: translateSchematicPoint(edge.from, offset),
+          to: translateSchematicPoint(edge.to, offset),
         })),
-        junctions: element.junctions.map(translatePoint),
+        junctions: element.junctions.map((point) =>
+          translateSchematicPoint(point, offset),
+        ),
       }
     default:
       return element
   }
+}
+
+function translateSchematicPoint(point: Point, offset: Point): Point {
+  return { x: point.x + offset.x, y: point.y + offset.y }
 }
 
 export function shouldRenderSchematicRecord(
@@ -148,7 +163,7 @@ export function shouldRenderSchematicRecord(
   return true
 }
 
-function getPositiveNumber(value: unknown, fallback: number): number {
-  const parsed = Number(value)
+function getPositiveNumber(candidate: unknown, fallback: number): number {
+  const parsed = Number(candidate)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }

@@ -1,9 +1,13 @@
-export function uniqueStrings(values: Array<string | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))]
+export function uniqueStrings(strings: Array<string | undefined>): string[] {
+  return [
+    ...new Set(
+      strings.filter((candidate): candidate is string => Boolean(candidate)),
+    ),
+  ]
 }
 
-export function sanitizeId(value: string): string {
-  const sanitized = value
+export function sanitizeId(sourceText: string): string {
+  const sanitized = sourceText
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/gu, "_")
@@ -11,13 +15,19 @@ export function sanitizeId(value: string): string {
   return sanitized || "unnamed"
 }
 
+export type SchematicSegmentKey = string & {
+  readonly __schematicSegmentKey: unique symbol
+}
+
 export function segmentKey(
   start: { x: number; y: number },
   end: { x: number; y: number },
-): string {
+): SchematicSegmentKey {
   const startKey = `${start.x.toFixed(6)},${start.y.toFixed(6)}`
   const endKey = `${end.x.toFixed(6)},${end.y.toFixed(6)}`
-  return startKey < endKey ? `${startKey}|${endKey}` : `${endKey}|${startKey}`
+  return (
+    startKey < endKey ? `${startKey}|${endKey}` : `${endKey}|${startKey}`
+  ) as SchematicSegmentKey
 }
 
 export function isGroundNet(name: string): boolean {

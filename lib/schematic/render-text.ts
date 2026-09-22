@@ -341,6 +341,6 @@ export function altiumColorToCss(
   return `#${toHex(red)}${toHex(green)}${toHex(blue)}`
 }
 
-function toHex(value: number): string {
-  return value.toString(16).padStart(2, "0")
+function toHex(colorChannel: number): string {
+  return colorChannel.toString(16).padStart(2, "0")
 }

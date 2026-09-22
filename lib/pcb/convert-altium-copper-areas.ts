@@ -194,6 +194,6 @@ function contourToPoints(contour: AltiumPcbContour): Point[] {
   return contour.isExplicitlyClosed ? points.slice(0, -1) : points
 }
 
-function milsToMillimeters(value: number): number {
-  return value * MILS_TO_MILLIMETERS
+function milsToMillimeters(mils: number): number {
+  return mils * MILS_TO_MILLIMETERS
 }

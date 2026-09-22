@@ -10,11 +10,13 @@ export type ComponentClassification =
   | "testpoint"
   | "unknown"
 
-export function classifyComponent(params: {
+export function classifyComponent({
+  designator,
+  libraryReference,
+}: {
   designator: string
   libraryReference: string
 }): ComponentClassification {
-  const { designator, libraryReference } = params
   const prefix = designator.match(/^[A-Z]+/iu)?.[0]?.toUpperCase() ?? ""
   const lowerReference = libraryReference.toLowerCase()
   if (prefix === "TP" || lowerReference.includes("testpoint")) {

@@ -2,12 +2,9 @@ import type { AltiumRecord } from "altiumts"
 import type { AnyCircuitElement, SchematicCircle } from "circuit-json"
 import type { ConvertAltiumSchDocOptions } from "../convert-altium-sch-doc-to-circuit-json"
 import { getLocation, scalePoint } from "./coordinates"
+import { renderPowerPort } from "./render-power-port"
 import { renderPrimitiveRecord } from "./render-primitives"
-import {
-  renderHierarchicalPort,
-  renderPin,
-  renderPowerPort,
-} from "./render-symbols"
+import { renderHierarchicalPort, renderPin } from "./render-symbols"
 import { altiumColorToCss, createLine, renderTextRecord } from "./render-text"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "./sheet-layout"
 export function convertSchematicRecord(

@@ -8,6 +8,9 @@ export interface Bounds {
 }
 
 export type CardinalDirection = "up" | "down" | "left" | "right"
+export type SchematicPointKey = string & {
+  readonly __schematicPointKey: unique symbol
+}
 
 export function getAveragePoint(points: AltiumPoint[]): AltiumPoint {
   if (points.length === 0) return { x: 0, y: 0 }
@@ -118,8 +121,8 @@ export function scalePoint(point: AltiumPoint, scale: number): AltiumPoint {
   return { x: point.x * scale, y: point.y * scale }
 }
 
-export function pointKey(point: AltiumPoint): string {
-  return `${point.x.toFixed(6)},${point.y.toFixed(6)}`
+export function pointKey(point: AltiumPoint): SchematicPointKey {
+  return `${point.x.toFixed(6)},${point.y.toFixed(6)}` as SchematicPointKey
 }
 
 export function pointsEqual(
