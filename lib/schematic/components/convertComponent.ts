@@ -1,18 +1,19 @@
 import {
   type AltiumSchComponentRecord,
+  AltiumSchImageRecord,
   AltiumSchLabelRecord,
   AltiumSchPinRecord,
 } from "altiumts"
 import type { SchematicComponent } from "circuit-json"
 import { getBoundsCenter, scaleLength, scalePoint } from "../geometry"
 import {
-  applyNativeSymbolPortGeometry,
-  selectCircuitJsonSymbol,
-} from "../symbols"
-import {
   isSchematicPrimitiveRecord,
   isSchematicVisualRecord,
 } from "../rendering"
+import {
+  applyNativeSymbolPortGeometry,
+  selectCircuitJsonSymbol,
+} from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
 import { createSourceComponent } from "./createSourceComponent"
@@ -98,6 +99,7 @@ export function convertComponent(
   const useNativeVisuals =
     !symbolSelection && visibleOwnedRecords.some(isSchematicPrimitiveRecord)
   for (const ownedRecord of ownedRecords) {
+    if (ownedRecord instanceof AltiumSchImageRecord) continue
     if (useNativeVisuals && isSchematicVisualRecord(ownedRecord)) continue
     handledRecords.add(ownedRecord)
   }
