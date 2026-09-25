@@ -6,6 +6,7 @@ import {
   TI_TMDS62LEVM_FIXTURE_NAME,
   TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS,
 } from "../../../scripts/references/reference-manifest"
+import { ALTIUM_SCHEMATIC_PALETTE_CSS } from "../../helpers/altium-schematic-palette-css"
 import { findDetachedSymbolPortIds } from "../../helpers/find-detached-symbol-ports"
 import { readReferenceBytes } from "../../helpers/read-reference"
 import { renderImportedSchematicToSvg } from "../../helpers/render-imported-schematic"
@@ -39,7 +40,9 @@ for (const sheetNumber of TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS) {
         title: `${title} — altiumts source`,
         width: 800,
       })
-      const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson)
+      const circuitJsonSvg = renderImportedSchematicToSvg(circuitJson, {
+        css: ALTIUM_SCHEMATIC_PALETTE_CSS,
+      })
       expect(circuitJsonSvg).toContain(
         'data-circuit-json-type="schematic_sheet"',
       )
