@@ -27,6 +27,19 @@ test(
     expect(
       circuitJson.filter((element) => element.type === "pcb_smtpad").length,
     ).toBeGreaterThan(5_000)
+    const routedCopperLayers = circuitJson.flatMap((element) =>
+      element.type === "pcb_trace"
+        ? element.route.flatMap((routePoint) =>
+            routePoint.route_type === "wire" ? [routePoint.layer] : [],
+          )
+        : [],
+    )
+    expect(
+      routedCopperLayers.filter((layer) => layer === "bottom").length,
+    ).toBeGreaterThan(10_000)
+    expect(
+      routedCopperLayers.filter((layer) => layer === "inner1").length,
+    ).toBeGreaterThan(400)
     const representativeElements = [
       ...new Map(
         circuitJson.map((element) => [element.type, element]),
