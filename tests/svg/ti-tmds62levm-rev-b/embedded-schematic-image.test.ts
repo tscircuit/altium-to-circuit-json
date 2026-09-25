@@ -11,8 +11,8 @@ test("TMDS62LEVM sheet 05 embedded schematic image", async () => {
   )
   const document = parseAltiumSchDoc(source)
   const circuitJson = convertAltiumSchDocToCircuitJson(document)
+  const renderedSvg = renderImportedSchematicToSvg(circuitJson)
 
-  await expect(renderImportedSchematicToSvg(circuitJson)).toMatchSvgSnapshot(
-    import.meta.path,
-  )
+  expect(renderedSvg).toContain('data-circuit-json-type="schematic_graphic"')
+  await expect(renderedSvg).toMatchSvgSnapshot(import.meta.path)
 })
