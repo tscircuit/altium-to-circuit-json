@@ -80,6 +80,7 @@ export function convertPcbPad({
       height,
       holeDiameter,
       id,
+      layerMap,
       record,
       shape,
       width,

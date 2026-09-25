@@ -4,6 +4,7 @@ import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import type { PcbCopperLayerMap } from "../layers"
 import { BOARD_ID } from "../model"
 import { getFallbackPcbBounds } from "./getFallbackPcbBounds"
+import { getPcbBoardThickness } from "./getPcbBoardThickness"
 import { getPreferredPcbBoardOutline } from "./getPreferredPcbBoardOutline"
 
 export function createBoard({
@@ -30,7 +31,7 @@ export function createBoard({
     width,
     height,
     ...(outline.length >= 3 ? { shape: "polygon" as const, outline } : {}),
-    thickness: 1.6,
+    thickness: getPcbBoardThickness(document),
     num_layers: layerMap.layers.length,
     material: "fr4",
   }
