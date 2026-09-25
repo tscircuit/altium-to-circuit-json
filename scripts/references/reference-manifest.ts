@@ -50,13 +50,6 @@ export const TI_POWER_REFERENCE_PCB_FILENAMES = {
 
 export const DIRECT_REFERENCES: DirectReferenceSpec[] = [
   {
-    filename: "student-dcdc-buck-converter.PcbDoc",
-    sha256: "3331f5d60a022817f897e152b8a47655f00e24c40c378aaddb3e229d0ded95c2",
-    source:
-      "issus/Student-DCDC-Buck-Converter@b19eda1250a50166996a777ce6fc12f0e5d4e36d (MIT)",
-    url: "https://raw.githubusercontent.com/issus/Student-DCDC-Buck-Converter/b19eda1250a50166996a777ce6fc12f0e5d4e36d/PCB4%20(Final%20Design).PcbDoc",
-  },
-  {
     filename: "simplefocmini-2024-04-26.PcbDoc",
     sha256: "8328cebe97ba8623fb2b707490e3473c6f7dc13fb0502b596b0e40c7e1613d24",
     source:
