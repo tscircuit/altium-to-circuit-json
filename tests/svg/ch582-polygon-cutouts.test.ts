@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test"
 import {
   AltiumRegionRecord,
+  getPcbBoardGeometry,
   getPcbRecordPolygonIndex,
-  getPcbRegionGeometry,
   parseAltiumPcbDoc,
   serializeAltiumPcbLayerToSvg,
 } from "altiumts"
@@ -38,28 +38,27 @@ test("CH582 PCB polygon cutouts", async () => {
     )
   expect(bottomPolygon?.shape).toBe("polygon")
 
-  const cutoutPoints = bottomCutouts.flatMap(
-    (cutout) => getPcbRegionGeometry(cutout).outline.points,
-  )
-  const minX = Math.min(...cutoutPoints.map((point) => point.x))
-  const maxX = Math.max(...cutoutPoints.map((point) => point.x))
-  const minY = Math.min(...cutoutPoints.map((point) => point.y))
-  const maxY = Math.max(...cutoutPoints.map((point) => point.y))
-  const padding = Math.max(maxX - minX, maxY - minY) * 0.05
+  const boardBounds = getPcbBoardGeometry(document).outline.bounds
+  if (!boardBounds) throw new Error("CH582 board outline has no bounds")
+  const padding =
+    Math.max(
+      boardBounds.maxX - boardBounds.minX,
+      boardBounds.maxY - boardBounds.minY,
+    ) * 0.05
   const viewBox = {
-    x: minX - padding,
-    y: minY - padding,
-    width: maxX - minX + 2 * padding,
-    height: maxY - minY + 2 * padding,
+    x: boardBounds.minX - padding,
+    y: boardBounds.minY - padding,
+    width: boardBounds.maxX - boardBounds.minX + 2 * padding,
+    height: boardBounds.maxY - boardBounds.minY + 2 * padding,
   }
   const altiumSvg = serializeAltiumPcbLayerToSvg(document, "BOTTOM", {
-    height: 400,
+    height: 600,
     showText: false,
     viewBox,
     width: 800,
   })
   const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
-    height: 400,
+    height: 600,
     layer: "bottom",
     viewport: {
       minX: milsToMillimeters(viewBox.x),
