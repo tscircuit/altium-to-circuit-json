@@ -1,6 +1,7 @@
 export * from "./convertPcbPad"
 export * from "./convertSlottedThroughHolePad"
 export * from "./convertThroughHolePad"
+export * from "./createPcbPadStack"
 export * from "./getRotatedHoleOffset"
 export * from "./isRectangularShape"
 export * from "./isSlottedThroughHolePad"

@@ -6,6 +6,7 @@ import {
 } from "altiumts"
 import { convertAltiumPcbDocToCircuitJson } from "../../lib"
 import { milsToMillimeters } from "../../lib/pcb/geometry"
+import { PcbCopperLayerMap } from "../../lib/pcb/layers"
 import {
   convertSlottedThroughHolePad,
   convertThroughHolePad,
@@ -76,6 +77,7 @@ test("calculates a slotted pad's hole offset only in the slot converter", () => 
     height: milsToMillimeters(geometry.heightMils),
     holeDiameter: milsToMillimeters(geometry.holeSizeMils),
     id: "slot_regression",
+    layerMap: new PcbCopperLayerMap(platedSlotPcbDoc),
     record,
     shape: normalizeShape(geometry.shape),
     width: milsToMillimeters(geometry.widthMils),

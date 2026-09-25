@@ -1,6 +1,7 @@
 import { normalizeAltiumAngle } from "altiumts"
-import type { LayerRef, PcbPlatedHole } from "circuit-json"
+import type { PcbPlatedHole } from "circuit-json"
 import { milsToMillimeters } from "../geometry"
+import { createPcbPadStack } from "./createPcbPadStack"
 import { getRotatedHoleOffset } from "./getRotatedHoleOffset"
 import { isRectangularShape } from "./isRectangularShape"
 import type { ThroughHolePadConversionOptions } from "./types"
@@ -10,6 +11,8 @@ export function convertSlottedThroughHolePad({
   geometry,
   height,
   id,
+  layerMap,
+  record,
   shape,
   width,
   x,
@@ -23,7 +26,8 @@ export function convertSlottedThroughHolePad({
   const holeWidth = milsToMillimeters(
     Math.max(geometry.slotLengthMils, geometry.holeSizeMils, 1),
   )
-  const layers: LayerRef[] = ["top", "bottom"]
+  const layers = layerMap.layers
+  const pad_stack = createPcbPadStack({ layerMap, record })
 
   if (!isRectangularShape(shape)) {
     return {
@@ -38,6 +42,7 @@ export function convertSlottedThroughHolePad({
       x,
       y,
       layers,
+      pad_stack,
     }
   }
 
@@ -62,6 +67,7 @@ export function convertSlottedThroughHolePad({
       x,
       y,
       layers,
+      pad_stack,
     }
   }
 
@@ -81,5 +87,6 @@ export function convertSlottedThroughHolePad({
     x,
     y,
     layers,
+    pad_stack,
   }
 }

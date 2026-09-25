@@ -15,7 +15,8 @@
     "dist"
   ],
   "trustedDependencies": [
-    "altiumts"
+    "altiumts",
+    "circuit-json"
   ],
   "publishConfig": {
     "access": "public"
@@ -36,6 +37,7 @@
     "format:check": "biome format .",
     "lint": "biome check .",
     "prepack": "bun run build",
+    "prepare": "bun run scripts/prepare-git-dependency.ts",
     "test": "bun run download-references && bun test",
     "test:update-svg": "bun run download-references && BUN_UPDATE_SNAPSHOTS=1 bun test tests/svg",
     "typecheck": "bunx tsc --noEmit",
@@ -47,7 +49,7 @@
   },
   "dependencies": {
     "altiumts": "github:tscircuit/altiumts#2010669c4e94819de68620b537ff9382d8f472f7",
-    "circuit-json": "^0.0.475",
+    "circuit-json": "github:tscircuit/circuit-json#0bca2e0ea5f9e366e91dcca1497f78435e9a9a0f",
     "format-si-unit": "^0.0.11",
     "schematic-symbols": "^0.0.238",
     "transformation-matrix": "^2.16.1"
