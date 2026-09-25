@@ -62,6 +62,7 @@ test(
       width: 800,
     })
     const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
+      colorOverrides: { drill: "#000000" },
       height: 800,
       layer: "top",
       matchBoardAspectRatio: true,
