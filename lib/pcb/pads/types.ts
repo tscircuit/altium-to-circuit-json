@@ -1,4 +1,5 @@
 import type { AltiumPadRecord, getAltiumPcbPadGeometry } from "altiumts"
+import type { PcbCopperLayerMap } from "../layers"
 
 export interface ThroughHolePadConversionOptions {
   cornerRadius: number | undefined
@@ -6,6 +7,7 @@ export interface ThroughHolePadConversionOptions {
   height: number
   holeDiameter: number
   id: string
+  layerMap: PcbCopperLayerMap
   record: AltiumPadRecord
   shape: string
   width: number

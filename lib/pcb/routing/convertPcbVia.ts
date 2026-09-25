@@ -38,6 +38,11 @@ export function convertPcbVia({
       record.holeSizeMils ?? (record.diameterMils ?? 20) * 0.45,
     ),
     layers,
-    is_tented: record.tentedTop === true && record.tentedBottom === true,
+    ...(record.tentedTop === undefined
+      ? {}
+      : { tented_on_top: record.tentedTop }),
+    ...(record.tentedBottom === undefined
+      ? {}
+      : { tented_on_bottom: record.tentedBottom }),
   }
 }

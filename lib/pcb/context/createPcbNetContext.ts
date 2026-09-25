@@ -1,4 +1,4 @@
-import type { AltiumPcbDocument } from "altiumts"
+import type { AltiumPcbDocument, AltiumRecord } from "altiumts"
 import type { SourceNet, SourceTrace } from "circuit-json"
 import type { PcbNetContext } from "../model"
 
@@ -38,14 +38,21 @@ export function createPcbNetContext(
     ]
   })
 
+  function getRecordNet(record: AltiumRecord) {
+    const directNet = document.getNetForRecord(record)
+    if (directNet) return directNet
+    const polygon = document.getPolygonForRecord(record)
+    return polygon ? document.getNetForRecord(polygon) : undefined
+  }
+
   return {
     elements,
     getSourceNetId: (record) => {
-      const net = document.getNetForRecord(record)
+      const net = getRecordNet(record)
       return net ? sourceNetIdByAltiumNet.get(net) : undefined
     },
     getSourceTraceId: (record) => {
-      const net = document.getNetForRecord(record)
+      const net = getRecordNet(record)
       return net ? sourceTraceIdByAltiumNet.get(net) : undefined
     },
   }
