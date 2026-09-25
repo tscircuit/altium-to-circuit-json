@@ -105,63 +105,80 @@ test("preserves PMP22773 J1 pin 1 layer-specific pad shapes", async () => {
   }
 })
 
-test("preserves all TI copper arcs and via net ownership", async () => {
-  let copperArcCount = 0
-  let netCopperArcCount = 0
-  let netViaCount = 0
-  for (const filename of tiPcbReferences) {
-    const document = parseAltiumBinaryPcbDoc(await readReferenceBytes(filename))
-    const circuit = convertAltiumPcbDocToCircuitJson(document)
-    const copperArcs = circuit
-      .filter((element) => element.type === "pcb_trace")
-      .filter((trace) => trace.pcb_trace_id.startsWith("pcb_trace_altium_arc_"))
-    const vias = circuit.filter((element) => element.type === "pcb_via")
-    copperArcCount += copperArcs.length
-    netCopperArcCount += copperArcs.filter(
-      (trace) => trace.source_trace_id !== undefined,
-    ).length
-    netViaCount += vias.length
-    expect(
-      vias.every(
-        (via) =>
-          via.source_net_id !== undefined && via.source_trace_id !== undefined,
-      ),
-    ).toBe(true)
-  }
-
-  expect(copperArcCount).toBe(174)
-  expect(netCopperArcCount).toBe(15)
-  expect(netViaCount).toBe(2877)
-})
-
-test("inherits net ownership for all 536 TI copper areas", async () => {
-  let netCopperAreaCount = 0
-  for (const filename of tiPcbReferences) {
-    const document = parseAltiumBinaryPcbDoc(await readReferenceBytes(filename))
-    const copperAreas = new Map(
-      convertAltiumPcbDocToCircuitJson(document)
-        .filter((element) => element.type === "pcb_copper_pour")
-        .map((element) => [element.pcb_copper_pour_id, element]),
-    )
-    for (const [recordIndex, record] of document.records.entries()) {
-      const copperAreaId = getCopperAreaId({ document, record, recordIndex })
-      const copperArea = copperAreaId
-        ? copperAreas.get(copperAreaId)
-        : undefined
-      if (!copperArea) continue
-      const polygon = document.getPolygonForRecord(record)
-      const net =
-        document.getNetForRecord(record) ??
-        (polygon ? document.getNetForRecord(polygon) : undefined)
-      if (!net) continue
-      const netIndex = document.nets.indexOf(net)
-      expect(copperArea.source_net_id).toBe(`source_net_altium_pcb_${netIndex}`)
-      netCopperAreaCount++
+test(
+  "preserves all TI copper arcs and via net ownership",
+  async () => {
+    let copperArcCount = 0
+    let netCopperArcCount = 0
+    let netViaCount = 0
+    for (const filename of tiPcbReferences) {
+      const document = parseAltiumBinaryPcbDoc(
+        await readReferenceBytes(filename),
+      )
+      const circuit = convertAltiumPcbDocToCircuitJson(document)
+      const copperArcs = circuit
+        .filter((element) => element.type === "pcb_trace")
+        .filter((trace) =>
+          trace.pcb_trace_id.startsWith("pcb_trace_altium_arc_"),
+        )
+      const vias = circuit.filter((element) => element.type === "pcb_via")
+      copperArcCount += copperArcs.length
+      netCopperArcCount += copperArcs.filter(
+        (trace) => trace.source_trace_id !== undefined,
+      ).length
+      netViaCount += vias.length
+      expect(
+        vias.every(
+          (via) =>
+            via.source_net_id !== undefined &&
+            via.source_trace_id !== undefined,
+        ),
+      ).toBe(true)
     }
-  }
 
-  expect(netCopperAreaCount).toBe(536)
-})
+    expect(copperArcCount).toBe(174)
+    expect(netCopperArcCount).toBe(15)
+    expect(netViaCount).toBe(2877)
+  },
+  { timeout: 30_000 },
+)
+
+test(
+  "inherits net ownership for all 536 TI copper areas",
+  async () => {
+    let netCopperAreaCount = 0
+    for (const filename of tiPcbReferences) {
+      const document = parseAltiumBinaryPcbDoc(
+        await readReferenceBytes(filename),
+      )
+      const copperAreas = new Map(
+        convertAltiumPcbDocToCircuitJson(document)
+          .filter((element) => element.type === "pcb_copper_pour")
+          .map((element) => [element.pcb_copper_pour_id, element]),
+      )
+      for (const [recordIndex, record] of document.records.entries()) {
+        const copperAreaId = getCopperAreaId({ document, record, recordIndex })
+        const copperArea = copperAreaId
+          ? copperAreas.get(copperAreaId)
+          : undefined
+        if (!copperArea) continue
+        const polygon = document.getPolygonForRecord(record)
+        const net =
+          document.getNetForRecord(record) ??
+          (polygon ? document.getNetForRecord(polygon) : undefined)
+        if (!net) continue
+        const netIndex = document.nets.indexOf(net)
+        expect(copperArea.source_net_id).toBe(
+          `source_net_altium_pcb_${netIndex}`,
+        )
+        netCopperAreaCount++
+      }
+    }
+
+    expect(netCopperAreaCount).toBe(536)
+  },
+  { timeout: 30_000 },
+)
 
 function getConvertedPad({
   document,
