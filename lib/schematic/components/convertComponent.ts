@@ -9,6 +9,10 @@ import {
   applyNativeSymbolPortGeometry,
   selectCircuitJsonSymbol,
 } from "../symbols"
+import {
+  isSchematicPrimitiveRecord,
+  isSchematicVisualRecord,
+} from "../rendering"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
 import { createSourceComponent } from "./createSourceComponent"
@@ -32,7 +36,6 @@ export function convertComponent(
     context
   handledRecords.add(componentRecord)
   const ownedRecords = document.index.getOwnedRecords(componentRecord)
-  for (const ownedRecord of ownedRecords) handledRecords.add(ownedRecord)
 
   const currentPartId = componentRecord.currentPartId ?? 1
   const visibleOwnedRecords = ownedRecords.filter((record) =>
@@ -92,6 +95,12 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
+  const useNativeVisuals =
+    !symbolSelection && visibleOwnedRecords.some(isSchematicPrimitiveRecord)
+  for (const ownedRecord of ownedRecords) {
+    if (useNativeVisuals && isSchematicVisualRecord(ownedRecord)) continue
+    handledRecords.add(ownedRecord)
+  }
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -120,7 +129,7 @@ export function convertComponent(
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: true,
+    is_box_with_pins: !useNativeVisuals,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -129,7 +138,7 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
-  if (!symbolSelection && options.includeText !== false) {
+  if (!symbolSelection && !useNativeVisuals && options.includeText !== false) {
     addComponentFallbackText({
       componentIndex,
       designator: identity.designator,

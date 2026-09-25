@@ -72,7 +72,7 @@ test("TI sheet 17 converts components, ports, nets, and text idiomatically", asy
   )
   expect(pmicComponent).toMatchObject({
     center: { x: 87.5, y: 77 },
-    is_box_with_pins: true,
+    is_box_with_pins: false,
     size: { height: 20, width: 19 },
     symbol_display_value: "PTPS6521401VAFR",
   })
