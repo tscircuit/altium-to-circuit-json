@@ -1,9 +1,10 @@
-import type { AltiumPcbDocument } from "altiumts"
+import type { AltiumPcbDocument, AltiumRecord } from "altiumts"
 import type { SourceNet, SourceTrace } from "circuit-json"
 import type { PcbNetContext } from "../model"
 
 export function createPcbNetContext(
   document: AltiumPcbDocument,
+  sourcePortIdsByNet: Map<AltiumRecord, string[]>,
 ): PcbNetContext {
   const sourceNetIdByAltiumNet = new Map(
     document.nets.map((net, index) => [net, `source_net_altium_pcb_${index}`]),
@@ -30,7 +31,7 @@ export function createPcbNetContext(
       {
         type: "source_trace",
         source_trace_id: sourceTraceId,
-        connected_source_port_ids: [],
+        connected_source_port_ids: sourcePortIdsByNet.get(net) ?? [],
         connected_source_net_ids: [sourceNetId],
         name,
         display_name: name,

@@ -1,5 +1,12 @@
-import type { AltiumPcbDocument, AltiumRecord } from "altiumts"
-import type { AnyCircuitElement, SourceNet, SourceTrace } from "circuit-json"
+import type { AltiumPadRecord, AltiumPcbDocument, AltiumRecord } from "altiumts"
+import type {
+  AnyCircuitElement,
+  PcbPort,
+  SourceNet,
+  SourcePort,
+  SourceSimpleChip,
+  SourceTrace,
+} from "circuit-json"
 
 export interface ConvertAltiumPcbDocOptions {
   includeBoardOutline?: boolean
@@ -20,9 +27,19 @@ export interface PcbNetContext {
   getSourceTraceId: (record: AltiumRecord) => string | undefined
 }
 
+export interface PcbPadContext {
+  elements: Array<SourceSimpleChip | SourcePort | PcbPort>
+  sourcePortIdsByNet: Map<AltiumRecord, string[]>
+  getPadRefs: (record: AltiumPadRecord) => {
+    pcb_component_id?: string
+    pcb_port_id?: string
+  }
+}
+
 export interface PcbConversionContext {
   document: AltiumPcbDocument
   elements: AnyCircuitElement[]
   netContext: PcbNetContext
+  padContext: PcbPadContext
   options: ConvertAltiumPcbDocOptions
 }

@@ -35,7 +35,7 @@ import {
 import { convertPcbCopperText, convertPcbMechanicalText } from "../text"
 
 export function convertPcbRecords(context: PcbConversionContext): void {
-  const { document, elements, netContext, options } = context
+  const { document, elements, netContext, options, padContext } = context
   for (const [recordIndex, record] of document.records.entries()) {
     if (
       record instanceof AltiumArcRecord &&
@@ -71,7 +71,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
 
     if (record instanceof AltiumPadRecord && options.includePads !== false) {
       const pad = convertPcbPad({ record, recordIndex })
-      if (pad) elements.push(pad)
+      if (pad) elements.push({ ...pad, ...padContext.getPadRefs(record) })
       continue
     }
 
