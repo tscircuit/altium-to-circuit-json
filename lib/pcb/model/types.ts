@@ -1,5 +1,6 @@
 import type { AltiumPcbDocument, AltiumRecord } from "altiumts"
 import type { AnyCircuitElement, SourceNet, SourceTrace } from "circuit-json"
+import type { PcbComponentIdMap } from "../identifiers"
 import type { PcbCopperLayerMap } from "../layers"
 
 export interface ConvertAltiumPcbDocOptions {
@@ -22,6 +23,7 @@ export interface PcbNetContext {
 }
 
 export interface PcbConversionContext {
+  componentIds: PcbComponentIdMap
   document: AltiumPcbDocument
   elements: AnyCircuitElement[]
   layerMap: PcbCopperLayerMap

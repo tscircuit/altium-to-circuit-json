@@ -5,30 +5,26 @@ import {
 } from "altiumts"
 import type { PcbCourtyardOutline } from "circuit-json"
 import { removeClosingPoint, toMillimeterPoint } from "../geometry"
-import { getPcbComponentId } from "../identifiers"
+import type { PcbComponentIdMap } from "../identifiers"
 import { getRecordLayer, isCourtyardLayer, mapCourtyardLayer } from "../layers"
 import { getCourtyardRecordPoints } from "./getCourtyardRecordPoints"
 import { isClosedAltiumPath } from "./isClosedAltiumPath"
 import { stitchCourtyardPaths } from "./stitchCourtyardPaths"
 import type { CourtyardPath } from "./types"
 
-export function convertPcbCourtyards(
-  document: AltiumPcbDocument,
-): PcbCourtyardOutline[] {
-  const componentIds = new Map(
-    document.components.flatMap((component, index) =>
-      component.position
-        ? [[component, getPcbComponentId(index)] as const]
-        : [],
-    ),
-  )
+export function convertPcbCourtyards({
+  document,
+  componentIds,
+}: {
+  document: AltiumPcbDocument
+  componentIds: PcbComponentIdMap
+}): PcbCourtyardOutline[] {
   const paths: CourtyardPath[] = []
 
   for (const record of document.records) {
     const layer = getRecordLayer(record)
     if (!isCourtyardLayer(layer)) continue
-    const component = document.getComponentForRecord(record)
-    const componentId = component ? componentIds.get(component) : undefined
+    const componentId = componentIds.get(record)
     if (!componentId) continue
     const points = getCourtyardRecordPoints(record)
     if (points.length < 2) continue

@@ -38,6 +38,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
   const { document, elements, layerMap, netContext, options } = context
   const routing = { layerMap, netContext }
   for (const [recordIndex, record] of document.records.entries()) {
+    const graphics = { componentIds: context.componentIds, recordIndex }
     if (
       record instanceof AltiumArcRecord &&
       isKeepoutLayer(record.layer) &&
@@ -63,7 +64,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
       options.includeDimensions !== false &&
       isExplodedPcbDimensionGraphic(document, record)
     ) {
-      const path = convertPcbFabricationNotePath({ record, recordIndex })
+      const path = convertPcbFabricationNotePath({ ...graphics, record })
       if (path) elements.push(path)
       continue
     }
@@ -78,7 +79,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
       if (isCourtyardLayer(record.layer)) continue
       if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
-        const line = convertPcbSilkscreenLine({ record, recordIndex })
+        const line = convertPcbSilkscreenLine({ ...graphics, record })
         if (line) elements.push(line)
       } else if (options.includeTraces !== false) {
         const trace = convertPcbTrack({
@@ -101,7 +102,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
       if (isCourtyardLayer(record.layer)) continue
       if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
-        const path = convertPcbSilkscreenArc({ record, recordIndex })
+        const path = convertPcbSilkscreenArc({ ...graphics, record })
         if (path) elements.push(path)
       } else if (options.includeTraces !== false) {
         const trace = convertPcbArcTrack({
@@ -117,21 +118,17 @@ export function convertPcbRecords(context: PcbConversionContext): void {
     if (record instanceof AltiumTextRecord) {
       if (isCourtyardLayer(record.layer)) continue
       if (isMechanicalLayer(record.layer)) {
-        const text = convertPcbMechanicalText({
-          document,
-          record,
-          recordIndex,
-        })
+        const text = convertPcbMechanicalText({ ...graphics, document, record })
         if (text) elements.push(text)
         continue
       }
       if (isOverlayLayer(record.layer)) {
         if (options.includeSilkscreen === false) continue
         if (isHiddenPcbComponentText({ document, record })) continue
-        const text = convertPcbSilkscreenText({ record, recordIndex })
+        const text = convertPcbSilkscreenText({ ...graphics, record })
         if (text) elements.push(text)
       } else {
-        const text = convertPcbCopperText({ layerMap, record, recordIndex })
+        const text = convertPcbCopperText({ ...graphics, layerMap, record })
         if (text) elements.push(text)
       }
       continue
@@ -139,7 +136,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
 
     if (record instanceof AltiumRegionRecord && isOverlayLayer(record.layer)) {
       if (options.includeSilkscreen === false) continue
-      const graphic = convertPcbSilkscreenRegion({ record, recordIndex })
+      const graphic = convertPcbSilkscreenRegion({ ...graphics, record })
       if (graphic) elements.push(graphic)
       continue
     }
@@ -152,7 +149,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
     }
 
     if (record instanceof AltiumFillRecord) {
-      const rect = convertPcbSilkscreenFill({ record, recordIndex })
+      const rect = convertPcbSilkscreenFill({ ...graphics, record })
       if (rect) elements.push(rect)
     }
   }

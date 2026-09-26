@@ -1,14 +1,19 @@
 import type { AltiumTextRecord } from "altiumts"
 import type { PcbSilkscreenText } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
-import { getPcbComponentIdForRecord } from "../identifiers"
+import {
+  getPcbComponentIdForRecord,
+  type PcbComponentIdMap,
+} from "../identifiers"
 import { mapOverlayLayer } from "../layers"
 import { mapTextAnchor } from "../text"
 
 export function convertPcbSilkscreenText({
+  componentIds,
   record,
   recordIndex,
 }: {
+  componentIds: PcbComponentIdMap
   record: AltiumTextRecord
   recordIndex: number
 }): PcbSilkscreenText | undefined {
@@ -16,7 +21,7 @@ export function convertPcbSilkscreenText({
   return {
     type: "pcb_silkscreen_text",
     pcb_silkscreen_text_id: `pcb_silkscreen_text_altium_${recordIndex}`,
-    pcb_component_id: getPcbComponentIdForRecord(record),
+    pcb_component_id: getPcbComponentIdForRecord(record, componentIds),
     text: record.text,
     font: "tscircuit2024",
     font_size: milsToMillimeters(record.heightMils ?? 30),

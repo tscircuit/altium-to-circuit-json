@@ -1,4 +1,5 @@
 import type { AltiumPcbDocument } from "altiumts"
+import { PcbComponentIdMap } from "../identifiers"
 import { PcbCopperLayerMap } from "../layers"
 import type { ConvertAltiumPcbDocOptions, PcbConversionContext } from "../model"
 import { createPcbNetContext } from "./createPcbNetContext"
@@ -11,6 +12,7 @@ export function createPcbConversionContext({
   options: ConvertAltiumPcbDocOptions
 }): PcbConversionContext {
   return {
+    componentIds: new PcbComponentIdMap(document, options),
     document,
     elements: [],
     layerMap: new PcbCopperLayerMap(document),
