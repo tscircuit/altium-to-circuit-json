@@ -1,13 +1,18 @@
 import type { AltiumFillRecord } from "altiumts"
 import type { PcbSilkscreenRect } from "circuit-json"
 import { milsToMillimeters } from "../geometry"
-import { getPcbComponentIdForRecord } from "../identifiers"
+import {
+  getPcbComponentIdForRecord,
+  type PcbComponentIdMap,
+} from "../identifiers"
 import { mapOverlayLayer } from "../layers"
 
 export function convertPcbSilkscreenFill({
+  componentIds,
   record,
   recordIndex,
 }: {
+  componentIds: PcbComponentIdMap
   record: AltiumFillRecord
   recordIndex: number
 }): PcbSilkscreenRect | undefined {
@@ -17,7 +22,7 @@ export function convertPcbSilkscreenFill({
   return {
     type: "pcb_silkscreen_rect",
     pcb_silkscreen_rect_id: `pcb_silkscreen_rect_altium_${recordIndex}`,
-    pcb_component_id: getPcbComponentIdForRecord(record),
+    pcb_component_id: getPcbComponentIdForRecord(record, componentIds),
     center: {
       x: milsToMillimeters((record.bounds.minX + record.bounds.maxX) / 2),
       y: milsToMillimeters((record.bounds.minY + record.bounds.maxY) / 2),

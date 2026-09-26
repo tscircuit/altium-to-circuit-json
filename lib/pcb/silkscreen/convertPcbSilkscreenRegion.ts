@@ -1,13 +1,18 @@
 import { type AltiumRegionRecord, getPcbRegionGeometry } from "altiumts"
 import type { PcbSilkscreenGraphic } from "circuit-json"
 import { toMillimeterPoint } from "../geometry"
-import { getPcbComponentIdForRecord } from "../identifiers"
+import {
+  getPcbComponentIdForRecord,
+  type PcbComponentIdMap,
+} from "../identifiers"
 import { mapOverlayLayer } from "../layers"
 
 export function convertPcbSilkscreenRegion({
+  componentIds,
   record,
   recordIndex,
 }: {
+  componentIds: PcbComponentIdMap
   record: AltiumRegionRecord
   recordIndex: number
 }): PcbSilkscreenGraphic | undefined {
@@ -22,7 +27,7 @@ export function convertPcbSilkscreenRegion({
   return {
     type: "pcb_silkscreen_graphic",
     pcb_silkscreen_graphic_id: `pcb_silkscreen_graphic_altium_region_${recordIndex}`,
-    pcb_component_id: getPcbComponentIdForRecord(record),
+    pcb_component_id: getPcbComponentIdForRecord(record, componentIds),
     shape: "brep",
     brep_shape: {
       outer_ring: { vertices: outerVertices },

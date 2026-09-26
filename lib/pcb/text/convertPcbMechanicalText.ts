@@ -1,27 +1,24 @@
 import type { AltiumPcbDocument, AltiumTextRecord } from "altiumts"
 import type { PcbFabricationNoteText } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
-import { getPcbComponentId } from "../identifiers"
+import type { PcbComponentIdMap } from "../identifiers"
 import { FABRICATION_NOTE_COLOR } from "../model"
 import { mapFabricationTextAnchor } from "./mapFabricationTextAnchor"
 
 export function convertPcbMechanicalText({
+  componentIds,
   document,
   record,
   recordIndex,
 }: {
+  componentIds: PcbComponentIdMap
   document: AltiumPcbDocument
   record: AltiumTextRecord
   recordIndex: number
 }): PcbFabricationNoteText | undefined {
-  const componentIndex = record.componentIndex
+  const componentId = componentIds.get(record)
   const component = document.getComponentForRecord(record)
-  if (
-    !record.position ||
-    componentIndex === undefined ||
-    !component ||
-    !record.text
-  ) {
+  if (!record.position || !componentId || !component || !record.text) {
     return undefined
   }
 
@@ -41,7 +38,7 @@ export function convertPcbMechanicalText({
   return {
     type: "pcb_fabrication_note_text",
     pcb_fabrication_note_text_id: `pcb_fabrication_note_text_altium_${recordIndex}`,
-    pcb_component_id: getPcbComponentId(componentIndex),
+    pcb_component_id: componentId,
     text,
     font: "tscircuit2024",
     font_size: milsToMillimeters(record.heightMils ?? 30),
