@@ -35,26 +35,26 @@ export function createPinClockSymbol({
   const clockDepth = scaleLength(4, scale)
   const clockHalfWidth = scaleLength(2, scale)
   const perpendicularVector = { x: -edgeVector.y, y: edgeVector.x }
+  const clockTip = {
+    x: bodyPosition.x + edgeVector.x * clockDepth,
+    y: bodyPosition.y + edgeVector.y * clockDepth,
+  }
+  const clockBaseStart = {
+    x: bodyPosition.x + perpendicularVector.x * clockHalfWidth,
+    y: bodyPosition.y + perpendicularVector.y * clockHalfWidth,
+  }
+  const clockBaseEnd = {
+    x: bodyPosition.x - perpendicularVector.x * clockHalfWidth,
+    y: bodyPosition.y - perpendicularVector.y * clockHalfWidth,
+  }
 
   return {
     type: "schematic_path",
     fill_color: "transparent",
     is_dashed: false,
     is_filled: false,
-    points: [
-      {
-        x: bodyPosition.x + edgeVector.x * clockDepth,
-        y: bodyPosition.y + edgeVector.y * clockDepth,
-      },
-      {
-        x: bodyPosition.x + perpendicularVector.x * clockHalfWidth,
-        y: bodyPosition.y + perpendicularVector.y * clockHalfWidth,
-      },
-      {
-        x: bodyPosition.x - perpendicularVector.x * clockHalfWidth,
-        y: bodyPosition.y - perpendicularVector.y * clockHalfWidth,
-      },
-    ],
+    points: [clockTip, clockBaseStart, clockBaseEnd, clockTip],
+    schematic_component_id: schematicPort.schematic_component_id,
     schematic_path_id: `schematic_pin_clock_altium_${recordIndex}`,
     schematic_sheet_id: schematicPort.schematic_sheet_id,
     stroke_color: "#a90000",

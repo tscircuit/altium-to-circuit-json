@@ -23,9 +23,15 @@ test("preserves TI clock and inversion pin-edge symbols", async () => {
   )
 
   expect(clockSymbols).toHaveLength(4)
-  expect(clockSymbols.every((element) => element.points.length === 3)).toBe(
-    true,
-  )
+  expect(
+    clockSymbols.every(
+      (element) =>
+        element.points.length === 4 &&
+        element.schematic_component_id !== undefined &&
+        element.points[0]?.x === element.points.at(-1)?.x &&
+        element.points[0]?.y === element.points.at(-1)?.y,
+    ),
+  ).toBe(true)
 
   const inversionSource = await readReferenceBytes(
     `${TI_TMDS62LEVM_FIXTURE_NAME}/41.SchDoc`,
