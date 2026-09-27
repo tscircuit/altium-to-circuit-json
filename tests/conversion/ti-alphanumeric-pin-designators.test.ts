@@ -19,7 +19,10 @@ test("preserves TI alphanumeric pin designators as schematic text", async () => 
   )
 
   expect(designatorTexts.length).toBeGreaterThan(20)
-  expect(designatorTexts.map((element) => element.text)).toContain("A1")
+  const firstA1Designator = designatorTexts.find(
+    (element) => element.text === "A1",
+  )
+  expect(firstA1Designator?.anchor).toBe("bottom_center")
   expect(
     designatorTexts.every(
       (element) => any_circuit_element.safeParse(element).success,

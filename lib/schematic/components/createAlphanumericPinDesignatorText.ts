@@ -42,7 +42,7 @@ export function createAlphanumericPinDesignatorText({
 
   return {
     type: "schematic_text",
-    anchor: "center",
+    anchor: "bottom_center",
     color: "#a90000",
     font_size: Math.max(scaleLength(1.5, scale), 0.15),
     position,
