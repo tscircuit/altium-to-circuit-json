@@ -4,7 +4,10 @@ import { any_circuit_element } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumPcbDocToCircuitJson } from "../../../lib"
 import { TI_TMDS62LEVM_PCB_FILENAME } from "../../../scripts/references/reference-manifest"
-import { getPcbBoardViewport } from "../../helpers/filter-pcb-layer"
+import {
+  getPcbBoardViewport,
+  padPcbViewport,
+} from "../../helpers/filter-pcb-layer"
 import { readReferenceBytes } from "../../helpers/read-reference"
 import { stackAltiumAndCircuitJsonSvgs } from "../../helpers/stack-svg-comparison"
 
@@ -65,7 +68,10 @@ test(
       height: 800,
       layer: "top",
       matchBoardAspectRatio: true,
-      viewport: boardViewport,
+      viewport: padPcbViewport({
+        paddingFraction: 0.05,
+        viewport: boardViewport,
+      }),
       width: 800,
     })
     const comparisonSvg = stackAltiumAndCircuitJsonSvgs({

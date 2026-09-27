@@ -53,3 +53,21 @@ export function getPcbBoardViewport(circuitJson: AnyCircuitElement[]): {
     maxY: board.center.y + board.height / 2,
   }
 }
+
+export function padPcbViewport({
+  paddingFraction,
+  viewport,
+}: {
+  paddingFraction: number
+  viewport: { maxX: number; maxY: number; minX: number; minY: number }
+}): { maxX: number; maxY: number; minX: number; minY: number } {
+  const padding =
+    Math.max(viewport.maxX - viewport.minX, viewport.maxY - viewport.minY) *
+    paddingFraction
+  return {
+    maxX: viewport.maxX + padding,
+    maxY: viewport.maxY + padding,
+    minX: viewport.minX - padding,
+    minY: viewport.minY - padding,
+  }
+}
