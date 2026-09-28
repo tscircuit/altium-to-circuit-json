@@ -11,6 +11,7 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
+import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
 import { createPinClockSymbol } from "./createPinClockSymbol"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
@@ -18,7 +19,6 @@ import { getComponentIdentity } from "./getComponentIdentity"
 import { isOwnedRecordVisible } from "./isOwnedRecordVisible"
 import { isPinHidden } from "./isPinHidden"
 import type { ComponentConversionContext } from "./types"
-
 export function convertComponent(
   {
     componentIndex,
@@ -34,7 +34,6 @@ export function convertComponent(
   handledRecords.add(componentRecord)
   const ownedRecords = document.index.getOwnedRecords(componentRecord)
   for (const ownedRecord of ownedRecords) handledRecords.add(ownedRecord)
-
   const currentPartId = componentRecord.currentPartId ?? 1
   const visibleOwnedRecords = ownedRecords.filter((record) =>
     isOwnedRecordVisible(record, currentPartId),
@@ -109,18 +108,21 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinClockSymbols = componentPorts.flatMap(
+  const pinEdgeElements = componentPorts.flatMap(
     ({ isSchematicVisible, schematicPort }, pinIndex) => {
       if (!isSchematicVisible) return []
       const pin = pins[pinIndex]
       if (!pin) return []
-      const pinClockSymbol = createPinClockSymbol({
+      const edgeElementParameters = {
         pin,
         recordIndex: document.records.indexOf(pin),
         scale: options.scale,
         schematicPort,
-      })
-      return pinClockSymbol ? [pinClockSymbol] : []
+      }
+      return [
+        createAlphanumericPinDesignatorText(edgeElementParameters),
+        createPinClockSymbol(edgeElementParameters),
+      ].filter((element) => element !== undefined)
     },
   )
   convertedPorts.push(...componentPorts)
@@ -131,7 +133,7 @@ export function convertComponent(
         ...(isSchematicVisible ? [schematicPort] : []),
       ],
     ),
-    ...pinClockSymbols,
+    ...pinEdgeElements,
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
