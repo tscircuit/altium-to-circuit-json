@@ -28,7 +28,7 @@ export function createSourceComponent({
   manufacturerPartNumber?: string
   pinCount: number
   sourceComponentId: string
-}): AnyCircuitElement {
+}): Extract<AnyCircuitElement, { type: "source_component" }> {
   const classification = classifyComponent({ designator, libraryReference })
   const primaryComponentText = getPrimaryComponentText(displayText)
   const common = {

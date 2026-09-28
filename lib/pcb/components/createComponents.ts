@@ -2,8 +2,12 @@ import type { AltiumPcbDocument } from "altiumts"
 import type { PcbComponent } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import { getPcbComponentId } from "../identifiers"
+import type { PcbComponentContext } from "../model"
 
-export function createComponents(document: AltiumPcbDocument): PcbComponent[] {
+export function createComponents(
+  document: AltiumPcbDocument,
+  componentContext: PcbComponentContext,
+): PcbComponent[] {
   return document.components.flatMap((component, index) => {
     const position = component.position
     if (!position) return []
@@ -12,7 +16,8 @@ export function createComponents(document: AltiumPcbDocument): PcbComponent[] {
       {
         type: "pcb_component",
         pcb_component_id: getPcbComponentId(index),
-        source_component_id: `source_component_altium_${index}`,
+        source_component_id:
+          componentContext.getSourceComponentIdForComponent(component),
         center: toMillimeterPoint(position),
         width: milsToMillimeters(
           bounds ? bounds.maxX - bounds.minX : (component.heightMils ?? 20),
