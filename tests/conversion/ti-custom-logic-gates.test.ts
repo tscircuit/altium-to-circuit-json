@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { parseAltiumSchDoc } from "altiumts"
 import { type AnyCircuitElement, any_circuit_element } from "circuit-json"
+import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
@@ -93,19 +94,30 @@ test("preserves custom TI logic-gate bodies instead of generic boxes", async () 
     endpointMaximumX + 0.1,
   )
 
-  for (const component of gateComponents) {
-    const ownedText = new Set(
-      circuitJson
-        .filter(
-          (element): element is SchematicText =>
-            element.type === "schematic_text" &&
-            element.schematic_component_id === component.schematic_component_id,
-        )
-        .map((element) => element.text),
+  const numericPinDesignators = circuitJson.filter(
+    (element): element is SchematicText =>
+      element.type === "schematic_text" &&
+      element.schematic_text_id.startsWith(
+        "schematic_pin_designator_altium_",
+      ) &&
+      /^[1-5]$/.test(element.text),
+  )
+  expect(numericPinDesignators).toHaveLength(10)
+  expect(
+    numericPinDesignators.every(
+      (element) => element.schematic_component_id === undefined,
+    ),
+  ).toBe(true)
+
+  const schematicSvg = convertCircuitJsonToSchematicSvg(circuitJson)
+  for (const pin of ["1", "2", "3", "4", "5"]) {
+    const renderedPinLabels = schematicSvg.match(
+      new RegExp(
+        `<text class="sch-text"[^>]*fill="#a90000"[^>]*>${pin}</text>`,
+        "g",
+      ),
     )
-    expect(["1", "2", "3", "4", "5"].every((pin) => ownedText.has(pin))).toBe(
-      true,
-    )
+    expect(renderedPinLabels).toHaveLength(2)
   }
   expect(
     circuitJson.every(
