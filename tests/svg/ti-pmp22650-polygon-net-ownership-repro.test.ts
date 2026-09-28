@@ -72,7 +72,9 @@ test(
     })
 
     expect(expectedNetOwnedCopperAreaCount).toBe(401)
-    expect(convertedNetOwnedCopperAreaCount).toBe(6)
+    expect(convertedNetOwnedCopperAreaCount).toBe(
+      expectedNetOwnedCopperAreaCount,
+    )
     await expect(diagnosticSvg).toMatchSvgSnapshot(import.meta.path)
   },
   { timeout: 120_000 },

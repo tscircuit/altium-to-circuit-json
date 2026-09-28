@@ -8,15 +8,10 @@ export function parseFiniteComponentRating({
   displayText: string
 }): number | undefined {
   if (!displayText.trim()) return undefined
-  let parsedComponentRating: number | null | undefined
-  try {
-    parsedComponentRating = parseAndConvertSiUnit(
-      displayText,
-      componentUnit,
-    ).value
-  } catch {
-    return undefined
-  }
+  const parsedComponentRating = parseAndConvertSiUnit(
+    displayText,
+    componentUnit,
+  ).value
   if (
     typeof parsedComponentRating !== "number" ||
     !Number.isFinite(parsedComponentRating)

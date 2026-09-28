@@ -41,11 +41,12 @@ export function connectPcbPad({
   const position = record.position
   if (!position) return [pad]
 
-  Object.assign(pad, {
+  const connectedPad: ElectricalPcbPad = {
+    ...pad,
     pcb_port_id: pcbPortId,
     port_hints: [padName],
     ...(pcbComponentId ? { pcb_component_id: pcbComponentId } : {}),
-  })
+  }
 
   const sourcePort: SourcePort = {
     type: "source_port",
@@ -66,5 +67,5 @@ export function connectPcbPad({
   }
 
   netContext.connectSourcePort(record, sourcePortId)
-  return [sourcePort, pcbPort, pad]
+  return [sourcePort, pcbPort, connectedPad]
 }

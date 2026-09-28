@@ -58,34 +58,7 @@ export function createPcbNetContext(
     traceWidthsByAltiumNet.get(net)?.push(milsToMillimeters(record.widthMils))
   }
 
-  const elements = document.nets.flatMap((net, index) => {
-    const name = net.name?.trim() || `Net ${index + 1}`
-    const sourceNetId = sourceNetIdByAltiumNet.get(net)
-    const sourceTraceId = sourceTraceIdByAltiumNet.get(net)
-    if (!sourceNetId || !sourceTraceId) return []
-
-    return [
-      {
-        type: "source_net",
-        source_net_id: sourceNetId,
-        name,
-        member_source_group_ids: [],
-      } satisfies SourceNet,
-      {
-        type: "source_trace",
-        source_trace_id: sourceTraceId,
-        connected_source_port_ids:
-          connectedSourcePortIdsByAltiumNet.get(net) ?? [],
-        connected_source_net_ids: [sourceNetId],
-        name,
-        display_name: name,
-        min_trace_thickness: getMode(traceWidthsByAltiumNet.get(net) ?? []),
-      } satisfies SourceTrace,
-    ]
-  })
-
   return {
-    elements,
     connectSourcePort: (record, sourcePortId) => {
       const net = getRecordNet(record)
       if (!net) return
@@ -94,6 +67,33 @@ export function createPcbNetContext(
         sourcePortIds.push(sourcePortId)
       }
     },
+    getElements: () =>
+      document.nets.flatMap((net, index) => {
+        const name = net.name?.trim() || `Net ${index + 1}`
+        const sourceNetId = sourceNetIdByAltiumNet.get(net)
+        const sourceTraceId = sourceTraceIdByAltiumNet.get(net)
+        if (!sourceNetId || !sourceTraceId) return []
+
+        return [
+          {
+            type: "source_net",
+            source_net_id: sourceNetId,
+            name,
+            member_source_group_ids: [],
+          } satisfies SourceNet,
+          {
+            type: "source_trace",
+            source_trace_id: sourceTraceId,
+            connected_source_port_ids: [
+              ...(connectedSourcePortIdsByAltiumNet.get(net) ?? []),
+            ],
+            connected_source_net_ids: [sourceNetId],
+            name,
+            display_name: name,
+            min_trace_thickness: getMode(traceWidthsByAltiumNet.get(net) ?? []),
+          } satisfies SourceTrace,
+        ]
+      }),
     getSourceNetId: (record) => {
       const net = getRecordNet(record)
       return net ? sourceNetIdByAltiumNet.get(net) : undefined

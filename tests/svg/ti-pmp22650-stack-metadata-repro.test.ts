@@ -94,8 +94,9 @@ test(
       ],
     })
 
-    expect(board?.thickness).toBe(1.6)
-    expect(convertedMp1?.pad_stack).toBeUndefined()
+    expect(board?.thickness).toBeCloseTo(sourceThickness, 7)
+    expect(convertedMp1?.pad_stack).toHaveLength(8)
+    expect(convertedInnerLayerCount).toBe(expectedInnerLayerCount)
     await expect(diagnosticSvg).toMatchSvgSnapshot(import.meta.path)
   },
   { timeout: 120_000 },

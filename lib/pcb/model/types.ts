@@ -20,8 +20,8 @@ export interface ConvertAltiumPcbDocOptions {
 }
 
 export interface PcbNetContext {
-  elements: Array<SourceNet | SourceTrace>
   connectSourcePort: (record: AltiumRecord, sourcePortId: string) => void
+  getElements: () => Array<SourceNet | SourceTrace>
   getSourceNetId: (record: AltiumRecord) => string | undefined
   getSourceTraceId: (record: AltiumRecord) => string | undefined
 }

@@ -67,10 +67,10 @@ test(
       ],
     })
 
-    expect(sourceComponentCount).toBe(0)
-    expect(sourcePortCount).toBe(0)
-    expect(pcbPortCount).toBe(0)
-    expect(sourceTracesWithPorts).toBe(0)
+    expect(sourceComponentCount).toBe(document.components.length)
+    expect(sourcePortCount).toBe(expectedElectricalPadCount)
+    expect(pcbPortCount).toBe(expectedElectricalPadCount)
+    expect(sourceTracesWithPorts).toBe(document.nets.length)
     await expect(diagnosticSvg).toMatchSvgSnapshot(import.meta.path)
   },
   { timeout: 40_000 },

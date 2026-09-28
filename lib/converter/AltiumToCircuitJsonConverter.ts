@@ -63,11 +63,13 @@ export class AltiumToCircuitJsonConverter {
     this.context.pcb = pcbContext
     this.context.elements = pcbContext.elements
     this.pipeline = [
-      new AddPcbNetsStage(document, this.context),
       new ConvertPcbBoardStage(document, this.context),
       new ConvertPcbComponentsStage(document, this.context),
       new ConvertPcbCopperAreasStage(document, this.context),
       new ConvertPcbRecordsStage(document, this.context),
+      // Ports are discovered while records are converted. Materialize native
+      // net elements only after every pad endpoint has been registered.
+      new AddPcbNetsStage(document, this.context),
     ]
   }
 
