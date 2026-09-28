@@ -11,9 +11,8 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
-import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
-import { createPinClockSymbol } from "./createPinClockSymbol"
+import { convertPinlessComponent } from "./convertPinlessComponent"
+import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
 import { getComponentIdentity } from "./getComponentIdentity"
@@ -61,34 +60,9 @@ export function convertComponent(
     )
   }
   if (pins.length === 0) {
-    const bodyBounds = getComponentBodyBounds(visibleOwnedRecords, [])
-    elements.push(
-      {
-        type: "schematic_component",
-        center: scalePoint(getBoundsCenter(bodyBounds), options.scale),
-        is_box_with_pins: false,
-        schematic_component_id: identity.schematicComponentId,
-        schematic_sheet_id: options.schematicSheetId,
-        size: {
-          height: Math.max(
-            scaleLength(bodyBounds.maxY - bodyBounds.minY, options.scale),
-            0.4,
-          ),
-          width: Math.max(
-            scaleLength(bodyBounds.maxX - bodyBounds.minX, options.scale),
-            0.4,
-          ),
-        },
-        source_component_id: identity.sourceComponentId,
-        symbol_display_value: identity.displayText,
-      },
-      ...convertOwnedComponentRecords(
-        {
-          ownedRecords: visibleOwnedRecords,
-          schematicComponentId: identity.schematicComponentId,
-        },
-        context,
-      ),
+    convertPinlessComponent(
+      { identity, ownedRecords: visibleOwnedRecords },
+      context,
     )
     return
   }
@@ -140,22 +114,9 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinEdgeElements = componentPorts.flatMap(
-    ({ isSchematicVisible, schematicPort }, pinIndex) => {
-      if (!isSchematicVisible) return []
-      const pin = pins[pinIndex]
-      if (!pin) return []
-      const edgeElementParameters = {
-        pin,
-        recordIndex: document.records.indexOf(pin),
-        scale: options.scale,
-        schematicPort,
-      }
-      return [
-        createAlphanumericPinDesignatorText(edgeElementParameters),
-        createPinClockSymbol(edgeElementParameters),
-      ].filter((element) => element !== undefined)
-    },
+  const pinEdgeElements = createComponentPinEdgeElements(
+    { componentPorts, pins },
+    context,
   )
   convertedPorts.push(...componentPorts)
   elements.push(
