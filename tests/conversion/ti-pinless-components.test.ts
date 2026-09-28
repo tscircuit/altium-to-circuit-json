@@ -40,7 +40,7 @@ test("preserves pinless component graphics on the TI mounting hardware sheet", a
         element.schematic_component_id === component.schematic_component_id,
     ),
   )
-  expect(componentsWithOwnedGraphics).toHaveLength(21)
+  expect(componentsWithOwnedGraphics).toHaveLength(20)
   expect(
     circuitJson.every(
       (element) => any_circuit_element.safeParse(element).success,

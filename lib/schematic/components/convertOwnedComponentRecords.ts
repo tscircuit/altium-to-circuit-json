@@ -1,4 +1,8 @@
-import { type AltiumRecord, AltiumSchPinRecord } from "altiumts"
+import {
+  type AltiumRecord,
+  AltiumSchImageRecord,
+  AltiumSchPinRecord,
+} from "altiumts"
 import type { AnyCircuitElement } from "circuit-json"
 import type { SchematicContext } from "../document"
 import { convertSchematicRecord } from "../rendering/convertSchematicRecord"
@@ -23,6 +27,7 @@ export function convertOwnedComponentRecords(
   }
 
   return ownedRecords.flatMap((record) => {
+    if (record instanceof AltiumSchImageRecord) return []
     const index = records.indexOf(record)
     if (index < 0) return []
     const elements = convertSchematicRecord(
