@@ -1,6 +1,6 @@
-import type { AnyCircuitElement } from "circuit-json"
 import type {
   AltiumSource,
+  ConvertedCircuitElement,
   ConvertAltiumToCircuitJsonOptions,
 } from "../converter"
 import { AltiumToCircuitJsonConverter } from "../converter"
@@ -8,7 +8,7 @@ import { AltiumToCircuitJsonConverter } from "../converter"
 export function convertAltiumToCircuitJson(
   source: AltiumSource,
   options: ConvertAltiumToCircuitJsonOptions = {},
-): AnyCircuitElement[] {
+): ConvertedCircuitElement[] {
   const converter = new AltiumToCircuitJsonConverter(source, options)
   converter.runUntilFinished()
   return converter.getOutput()

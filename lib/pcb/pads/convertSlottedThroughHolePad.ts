@@ -1,10 +1,12 @@
 import { normalizeAltiumAngle } from "altiumts"
-import type { PcbPlatedHole } from "circuit-json"
 import { milsToMillimeters } from "../geometry"
 import { createPcbPadStack } from "./createPcbPadStack"
 import { getRotatedHoleOffset } from "./getRotatedHoleOffset"
 import { isRectangularShape } from "./isRectangularShape"
-import type { ThroughHolePadConversionOptions } from "./types"
+import type {
+  ConvertedPcbPlatedHole,
+  ThroughHolePadConversionOptions,
+} from "./types"
 
 export function convertSlottedThroughHolePad({
   cornerRadius,
@@ -17,7 +19,7 @@ export function convertSlottedThroughHolePad({
   width,
   x,
   y,
-}: ThroughHolePadConversionOptions): PcbPlatedHole {
+}: ThroughHolePadConversionOptions): ConvertedPcbPlatedHole {
   const holeOffset = getRotatedHoleOffset(geometry)
   const holeCcwRotationDegrees = normalizeAltiumAngle(
     geometry.ccwRotationDegrees + geometry.holeCcwRotationDegrees,

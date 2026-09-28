@@ -1,12 +1,14 @@
 import { AltiumBinaryPcbDoc, AltiumPcbDoc, AltiumSchDoc } from "altiumts"
-import type { AnyCircuitElement } from "circuit-json"
-import type { ConvertAltiumToCircuitJsonOptions } from "../converter"
-import { AltiumToCircuitJsonConverter } from "../converter"
+import {
+  AltiumToCircuitJsonConverter,
+  type ConvertedCircuitElement,
+  type ConvertAltiumToCircuitJsonOptions,
+} from "../converter"
 
 export function convertAltiumDocumentToCircuitJson(
   document: unknown,
   options: ConvertAltiumToCircuitJsonOptions = {},
-): AnyCircuitElement[] {
+): ConvertedCircuitElement[] {
   if (
     document instanceof AltiumSchDoc ||
     document instanceof AltiumPcbDoc ||

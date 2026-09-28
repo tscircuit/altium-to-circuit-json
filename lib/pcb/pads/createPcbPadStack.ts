@@ -1,14 +1,19 @@
 import { getAltiumPcbPadGeometry } from "altiumts"
-import type { PcbPadStack } from "circuit-json"
 import { createOctagonPoints, milsToMillimeters } from "../geometry"
 import { isRectangularShape } from "./isRectangularShape"
 import { normalizeShape } from "./normalizeShape"
-import type { ThroughHolePadConversionOptions } from "./types"
+import type {
+  ConvertedPcbPadStack,
+  ThroughHolePadConversionOptions,
+} from "./types"
 
 export function createPcbPadStack({
   layerMap,
   record,
-}: Pick<ThroughHolePadConversionOptions, "layerMap" | "record">): PcbPadStack {
+}: Pick<
+  ThroughHolePadConversionOptions,
+  "layerMap" | "record"
+>): ConvertedPcbPadStack {
   return layerMap.layers.map((layer) => {
     const geometry = getAltiumPcbPadGeometry({
       record,

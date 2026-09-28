@@ -6,6 +6,11 @@ import type {
   PcbConversionContext,
 } from "../pcb/model"
 import type { SchematicConversionContext } from "../schematic/document"
+import type { ConvertedPcbPlatedHole } from "../pcb/pads"
+
+export type ConvertedCircuitElement =
+  | Exclude<AnyCircuitElement, { type: "pcb_plated_hole" }>
+  | ConvertedPcbPlatedHole
 
 export type AltiumSource = ArrayBuffer | Uint8Array | string
 

@@ -1,5 +1,4 @@
 import { AltiumSchDoc } from "altiumts"
-import type { AnyCircuitElement } from "circuit-json"
 import { createPcbConversionContext } from "../pcb/context"
 import { createSchematicConversionContext } from "../schematic/document"
 import {
@@ -21,6 +20,7 @@ import { parseAltiumSource } from "./parseAltiumSource"
 import type {
   AltiumSource,
   AltiumToCircuitJsonConverterContext,
+  ConvertedCircuitElement,
   ConvertAltiumToCircuitJsonOptions,
   SupportedAltiumDocument,
 } from "./types"
@@ -96,7 +96,7 @@ export class AltiumToCircuitJsonConverter {
     while (!this.finished) this.step()
   }
 
-  getOutput(): AnyCircuitElement[] {
+  getOutput(): ConvertedCircuitElement[] {
     if (!this.finished) {
       throw new Error("Converter must finish before its output is read")
     }

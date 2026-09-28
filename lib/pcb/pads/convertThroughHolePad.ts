@@ -1,4 +1,3 @@
-import type { PcbPlatedHole } from "circuit-json"
 import { createOctagonPoints, milsToMillimeters } from "../geometry"
 import { MILS_TO_MILLIMETERS } from "../model"
 import { convertSlottedThroughHolePad } from "./convertSlottedThroughHolePad"
@@ -6,11 +5,14 @@ import { createPcbPadStack } from "./createPcbPadStack"
 import { getRotatedHoleOffset } from "./getRotatedHoleOffset"
 import { isRectangularShape } from "./isRectangularShape"
 import { isSlottedThroughHolePad } from "./isSlottedThroughHolePad"
-import type { ThroughHolePadConversionOptions } from "./types"
+import type {
+  ConvertedPcbPlatedHole,
+  ThroughHolePadConversionOptions,
+} from "./types"
 
 export function convertThroughHolePad(
   options: ThroughHolePadConversionOptions,
-): PcbPlatedHole {
+): ConvertedPcbPlatedHole {
   if (isSlottedThroughHolePad(options)) {
     return convertSlottedThroughHolePad(options)
   }
