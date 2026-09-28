@@ -22,7 +22,7 @@ import {
   isOverlayLayer,
 } from "../layers"
 import type { PcbConversionContext } from "../model"
-import { convertPcbPad } from "../pads"
+import { connectPcbPad, convertPcbPad } from "../pads"
 import { convertPcbArcTrack, convertPcbTrack, convertPcbVia } from "../routing"
 import {
   convertPcbSilkscreenArc,
@@ -35,7 +35,14 @@ import {
 import { convertPcbCopperText, convertPcbMechanicalText } from "../text"
 
 export function convertPcbRecords(context: PcbConversionContext): void {
-  const { document, elements, layerMap, netContext, options } = context
+  const {
+    componentContext,
+    document,
+    elements,
+    layerMap,
+    netContext,
+    options,
+  } = context
   const routing = { layerMap, netContext }
   for (const [recordIndex, record] of document.records.entries()) {
     if (
@@ -70,7 +77,21 @@ export function convertPcbRecords(context: PcbConversionContext): void {
 
     if (record instanceof AltiumPadRecord && options.includePads !== false) {
       const pad = convertPcbPad({ layerMap, record, recordIndex })
-      if (pad) elements.push(pad)
+      if (!pad) continue
+      if (pad.type === "pcb_hole") {
+        elements.push(pad)
+      } else {
+        elements.push(
+          ...connectPcbPad({
+            componentContext,
+            includeComponentOwnership: options.includeComponents !== false,
+            netContext,
+            pad,
+            record,
+            recordIndex,
+          }),
+        )
+      }
       continue
     }
 

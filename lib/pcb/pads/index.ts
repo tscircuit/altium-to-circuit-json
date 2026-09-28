@@ -1,3 +1,4 @@
+export * from "./connectPcbPad"
 export * from "./convertPcbPad"
 export * from "./convertSlottedThroughHolePad"
 export * from "./convertThroughHolePad"

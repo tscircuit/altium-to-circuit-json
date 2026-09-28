@@ -163,6 +163,103 @@ test("inherits net ownership for all 536 TI copper areas", async () => {
   expect(netCopperAreaCount).toBe(536)
 })
 
+test(
+  "derives TI component, pad, port, and net connectivity from the PcbDoc",
+  async () => {
+    for (const filename of tiPcbReferences) {
+      const document = parseAltiumBinaryPcbDoc(
+        await readReferenceBytes(filename),
+      )
+      const circuit = convertAltiumPcbDocToCircuitJson(document)
+      const elementById = new Map(
+        circuit.flatMap((element) => {
+          const id =
+            ("pcb_smtpad_id" in element && element.pcb_smtpad_id) ||
+            ("pcb_plated_hole_id" in element && element.pcb_plated_hole_id) ||
+            ("pcb_hole_id" in element && element.pcb_hole_id)
+          return id ? [[id, element]] : []
+        }),
+      )
+      const sourcePortById = new Map(
+        circuit
+          .filter((element) => element.type === "source_port")
+          .map((port) => [port.source_port_id, port]),
+      )
+      const pcbPortById = new Map(
+        circuit
+          .filter((element) => element.type === "pcb_port")
+          .map((port) => [port.pcb_port_id, port]),
+      )
+      const sourceTraceById = new Map(
+        circuit
+          .filter((element) => element.type === "source_trace")
+          .map((trace) => [trace.source_trace_id, trace]),
+      )
+      let electricalPadCount = 0
+
+      expect(
+        circuit.filter((element) => element.type === "source_component"),
+      ).toHaveLength(document.components.length)
+      expect(
+        circuit.filter((element) => element.type === "source_net"),
+      ).toHaveLength(document.nets.length)
+
+      for (const [recordIndex, record] of document.records.entries()) {
+        if (!(record instanceof AltiumPadRecord)) continue
+        const holeSizeMils = record.holeSizeMils ?? 0
+        const isNonPlatedHole = record.plated === false && holeSizeMils > 0
+        if (record.behavior === "unknown" && holeSizeMils === 0) continue
+        const convertedId = isNonPlatedHole
+          ? `pcb_hole_altium_${recordIndex}`
+          : record.behavior === "through-hole" || holeSizeMils > 0
+            ? `pcb_plated_hole_altium_${recordIndex}`
+            : `pcb_smtpad_altium_${recordIndex}`
+        const convertedPad = elementById.get(convertedId)
+        expect(convertedPad).toBeDefined()
+        if (!convertedPad || isNonPlatedHole) continue
+
+        electricalPadCount++
+        const sourcePortId = `source_port_altium_${recordIndex}`
+        const pcbPortId = `pcb_port_altium_${recordIndex}`
+        const sourcePort = sourcePortById.get(sourcePortId)
+        const pcbPort = pcbPortById.get(pcbPortId)
+        expect(sourcePort).toBeDefined()
+        expect(pcbPort).toBeDefined()
+        expect(convertedPad).toMatchObject({ pcb_port_id: pcbPortId })
+        expect(pcbPort).toMatchObject({ source_port_id: sourcePortId })
+
+        const component = document.getComponentForRecord(record)
+        if (component) {
+          const componentIndex = document.components.indexOf(component)
+          expect(sourcePort).toMatchObject({
+            source_component_id: `source_component_altium_${componentIndex}`,
+          })
+          expect(pcbPort).toMatchObject({
+            pcb_component_id: `pcb_component_altium_${componentIndex}`,
+          })
+          expect(convertedPad).toMatchObject({
+            pcb_component_id: `pcb_component_altium_${componentIndex}`,
+          })
+        }
+
+        const net = document.getNetForRecord(record)
+        if (net) {
+          const netIndex = document.nets.indexOf(net)
+          expect(
+            sourceTraceById
+              .get(`source_trace_altium_pcb_${netIndex}`)
+              ?.connected_source_port_ids.includes(sourcePortId),
+          ).toBe(true)
+        }
+      }
+
+      expect(sourcePortById.size).toBe(electricalPadCount)
+      expect(pcbPortById.size).toBe(electricalPadCount)
+    }
+  },
+  { timeout: 30_000 },
+)
+
 function getConvertedPad({
   document,
   designator,
