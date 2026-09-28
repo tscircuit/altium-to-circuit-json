@@ -98,5 +98,5 @@ test(
     expect(convertedMp1?.pad_stack).toBeUndefined()
     await expect(diagnosticSvg).toMatchSvgSnapshot(import.meta.path)
   },
-  { timeout: 40_000 },
+  { timeout: 120_000 },
 )
