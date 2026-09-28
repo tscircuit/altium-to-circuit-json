@@ -39,9 +39,13 @@ export function convertOwnedComponentRecords(
       },
       renderingContext,
     )
-    return elements.map((element) => ({
-      ...element,
-      schematic_component_id: schematicComponentId,
-    }))
+    return elements.map((element) =>
+      element.type === "schematic_text"
+        ? element
+        : {
+            ...element,
+            schematic_component_id: schematicComponentId,
+          },
+    )
   })
 }

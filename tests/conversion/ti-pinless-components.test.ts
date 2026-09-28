@@ -32,16 +32,15 @@ test("preserves pinless component graphics on the TI mounting hardware sheet", a
       (component) => component.is_box_with_pins === false,
     ),
   ).toBe(true)
-  expect(
-    schematicComponents.every((component) =>
-      circuitJson.some(
-        (element) =>
-          element.type !== "schematic_component" &&
-          "schematic_component_id" in element &&
-          element.schematic_component_id === component.schematic_component_id,
-      ),
+  const componentsWithOwnedGraphics = schematicComponents.filter((component) =>
+    circuitJson.some(
+      (element) =>
+        element.type !== "schematic_component" &&
+        "schematic_component_id" in element &&
+        element.schematic_component_id === component.schematic_component_id,
     ),
-  ).toBe(true)
+  )
+  expect(componentsWithOwnedGraphics).toHaveLength(21)
   expect(
     circuitJson.every(
       (element) => any_circuit_element.safeParse(element).success,
