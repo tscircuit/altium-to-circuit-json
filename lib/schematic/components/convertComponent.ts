@@ -1,6 +1,5 @@
 import {
   type AltiumSchComponentRecord,
-  AltiumSchEllipseRecord,
   AltiumSchLabelRecord,
   AltiumSchPinRecord,
 } from "altiumts"
@@ -8,14 +7,12 @@ import type { SchematicComponent } from "circuit-json"
 import { getBoundsCenter, scaleLength, scalePoint } from "../geometry"
 import {
   applyNativeSymbolPortGeometry,
-  classifyComponent,
   selectCircuitJsonSymbol,
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
-import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
-import { createPinClockSymbol } from "./createPinClockSymbol"
+import { convertOwnedTestpointBody } from "./convertOwnedTestpointBody"
+import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
 import { getComponentIdentity } from "./getComponentIdentity"
@@ -90,14 +87,11 @@ export function convertComponent(
     visibleOwnedRecords,
     componentPorts.map(({ point }) => point),
   )
-  const hasOwnedTestpointCircle =
-    classifyComponent({
-      designator: identity.designator,
-      libraryReference: identity.libraryReference,
-    }) === "testpoint" &&
-    visibleOwnedRecords.some(
-      (record) => record instanceof AltiumSchEllipseRecord,
-    )
+  const ownedTestpointBody = convertOwnedTestpointBody(
+    { identity, ownedRecords: visibleOwnedRecords },
+    context,
+  )
+  const hasOwnedTestpointCircle = ownedTestpointBody !== undefined
   const symbolSelection = hasOwnedTestpointCircle
     ? undefined
     : selectCircuitJsonSymbol({
@@ -105,15 +99,6 @@ export function convertComponent(
         libraryReference: identity.libraryReference,
         ports: componentPorts,
       })
-  const ownedTestpointElements = hasOwnedTestpointCircle
-    ? convertOwnedComponentRecords(
-        {
-          ownedRecords: visibleOwnedRecords,
-          schematicComponentId: identity.schematicComponentId,
-        },
-        context,
-      )
-    : []
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -130,22 +115,9 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinEdgeElements = componentPorts.flatMap(
-    ({ isSchematicVisible, schematicPort }, pinIndex) => {
-      if (!isSchematicVisible) return []
-      const pin = pins[pinIndex]
-      if (!pin) return []
-      const edgeElementParameters = {
-        pin,
-        recordIndex: document.records.indexOf(pin),
-        scale: options.scale,
-        schematicPort,
-      }
-      return [
-        createAlphanumericPinDesignatorText(edgeElementParameters),
-        createPinClockSymbol(edgeElementParameters),
-      ].filter((element) => element !== undefined)
-    },
+  const pinEdgeElements = createComponentPinEdgeElements(
+    { componentPorts, pins },
+    context,
   )
   convertedPorts.push(...componentPorts)
   elements.push(
@@ -156,7 +128,7 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
-    ...ownedTestpointElements,
+    ...(ownedTestpointBody ?? []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
