@@ -34,7 +34,9 @@ async function runCommand(
   }
 }
 
-const buildDirectory = await mkdtemp(join(tmpdir(), "altium-to-circuit-json-prepare-"))
+const buildDirectory = await mkdtemp(
+  join(tmpdir(), "altium-to-circuit-json-prepare-"),
+)
 
 try {
   await cp(sourceDirectory, buildDirectory, {
@@ -50,4 +52,3 @@ try {
 } finally {
   await rm(buildDirectory, { force: true, recursive: true })
 }
-
