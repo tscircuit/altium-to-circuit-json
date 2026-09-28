@@ -1,5 +1,6 @@
 import {
   type AltiumSchComponentRecord,
+  AltiumSchEllipseRecord,
   AltiumSchLabelRecord,
   AltiumSchPinRecord,
 } from "altiumts"
@@ -7,10 +8,12 @@ import type { SchematicComponent } from "circuit-json"
 import { getBoundsCenter, scaleLength, scalePoint } from "../geometry"
 import {
   applyNativeSymbolPortGeometry,
+  classifyComponent,
   selectCircuitJsonSymbol,
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
+import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
 import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
 import { createPinClockSymbol } from "./createPinClockSymbol"
 import { createSourceComponent } from "./createSourceComponent"
@@ -87,11 +90,30 @@ export function convertComponent(
     visibleOwnedRecords,
     componentPorts.map(({ point }) => point),
   )
-  const symbolSelection = selectCircuitJsonSymbol({
-    designator: identity.designator,
-    libraryReference: identity.libraryReference,
-    ports: componentPorts,
-  })
+  const hasOwnedTestpointCircle =
+    classifyComponent({
+      designator: identity.designator,
+      libraryReference: identity.libraryReference,
+    }) === "testpoint" &&
+    visibleOwnedRecords.some(
+      (record) => record instanceof AltiumSchEllipseRecord,
+    )
+  const symbolSelection = hasOwnedTestpointCircle
+    ? undefined
+    : selectCircuitJsonSymbol({
+        designator: identity.designator,
+        libraryReference: identity.libraryReference,
+        ports: componentPorts,
+      })
+  const ownedTestpointElements = hasOwnedTestpointCircle
+    ? convertOwnedComponentRecords(
+        {
+          ownedRecords: visibleOwnedRecords,
+          schematicComponentId: identity.schematicComponentId,
+        },
+        context,
+      )
+    : []
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -134,11 +156,12 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
+    ...ownedTestpointElements,
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: true,
+    is_box_with_pins: !hasOwnedTestpointCircle,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -147,7 +170,11 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
-  if (!symbolSelection && options.includeText !== false) {
+  if (
+    !symbolSelection &&
+    !hasOwnedTestpointCircle &&
+    options.includeText !== false
+  ) {
     addComponentFallbackText({
       componentIndex,
       designator: identity.designator,

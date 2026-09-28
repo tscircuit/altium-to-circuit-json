@@ -2,10 +2,10 @@ import { expect, test } from "bun:test"
 import { parseAltiumSchDoc } from "altiumts"
 import type {
   AnyCircuitElement,
+  SchematicCircle,
   SchematicComponent,
   SchematicPort,
   SchematicText,
-  SchematicTrace,
 } from "circuit-json"
 import { any_circuit_element } from "circuit-json"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
@@ -163,32 +163,36 @@ test("TI sheet 17 converts components, ports, nets, and text idiomatically", asy
       element.schematic_component_id ===
         testpointComponent?.schematic_component_id,
   )
-  const testpointLead = circuitJson.find(
-    (element): element is SchematicTrace =>
-      element.type === "schematic_trace" &&
-      element.schematic_trace_id === "schematic_trace_altium_port_lead_319",
+  const testpointCircle = circuitJson.find(
+    (element): element is SchematicCircle =>
+      element.type === "schematic_circle" &&
+      element.schematic_component_id ===
+        testpointComponent?.schematic_component_id,
   )
   expect(testpointComponent).toMatchObject({
     center: { x: 23.5, y: 111 },
-    size: { height: 0.2, width: 0.325 },
-    symbol_name: "testpoint_left",
+    is_box_with_pins: false,
+    size: { height: 1, width: 1 },
   })
   expect(testpointPort).toMatchObject({
-    center: { x: 23.7, y: 111 },
+    center: { x: 25, y: 111 },
+    distance_from_component_edge: 1,
     facing_direction: "right",
     is_connected: true,
     side_of_component: "right",
   })
-  expect(testpointLead).toMatchObject({
-    edges: [
-      {
-        from: { x: 23.7, y: 111 },
-        from_schematic_port_id: testpointPort?.schematic_port_id,
-        to: { x: 25, y: 111 },
-      },
-    ],
-    source_trace_id: "source_trace_altium_15",
+  expect(testpointCircle).toMatchObject({
+    center: { x: 23.5, y: 111 },
+    is_filled: false,
+    radius: 0.5,
   })
+  expect(
+    circuitJson.find(
+      (element) =>
+        element.type === "schematic_trace" &&
+        element.schematic_trace_id === "schematic_trace_altium_port_lead_319",
+    ),
+  ).toBeUndefined()
 
   expect(
     circuitJson.find(
