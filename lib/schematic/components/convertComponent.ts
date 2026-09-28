@@ -11,6 +11,7 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
+import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
 import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
 import { createPinClockSymbol } from "./createPinClockSymbol"
 import { createSourceComponent } from "./createSourceComponent"
@@ -43,18 +44,6 @@ export function convertComponent(
       record instanceof AltiumSchPinRecord &&
       (!isPinHidden(record) || options.includeHidden === true),
   )
-  if (pins.length === 0) return
-  const visibleSymbolLabels = new Set(
-    visibleOwnedRecords
-      .filter(
-        (record): record is AltiumSchLabelRecord =>
-          record instanceof AltiumSchLabelRecord,
-      )
-      .flatMap((record) => {
-        const text = record.text?.trim().toUpperCase()
-        return text ? [text] : []
-      }),
-  )
   const identity = getComponentIdentity(
     { componentIndex, componentRecord, ownedRecords },
     context,
@@ -71,6 +60,49 @@ export function convertComponent(
       }),
     )
   }
+  if (pins.length === 0) {
+    const bodyBounds = getComponentBodyBounds(visibleOwnedRecords, [])
+    elements.push(
+      {
+        type: "schematic_component",
+        center: scalePoint(getBoundsCenter(bodyBounds), options.scale),
+        is_box_with_pins: false,
+        schematic_component_id: identity.schematicComponentId,
+        schematic_sheet_id: options.schematicSheetId,
+        size: {
+          height: Math.max(
+            scaleLength(bodyBounds.maxY - bodyBounds.minY, options.scale),
+            0.4,
+          ),
+          width: Math.max(
+            scaleLength(bodyBounds.maxX - bodyBounds.minX, options.scale),
+            0.4,
+          ),
+        },
+        source_component_id: identity.sourceComponentId,
+        symbol_display_value: identity.displayText,
+      },
+      ...convertOwnedComponentRecords(
+        {
+          ownedRecords: visibleOwnedRecords,
+          schematicComponentId: identity.schematicComponentId,
+        },
+        context,
+      ),
+    )
+    return
+  }
+  const visibleSymbolLabels = new Set(
+    visibleOwnedRecords
+      .filter(
+        (record): record is AltiumSchLabelRecord =>
+          record instanceof AltiumSchLabelRecord,
+      )
+      .flatMap((record) => {
+        const text = record.text?.trim().toUpperCase()
+        return text ? [text] : []
+      }),
+  )
 
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
