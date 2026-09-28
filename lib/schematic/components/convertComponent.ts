@@ -1,8 +1,4 @@
-import {
-  type AltiumSchComponentRecord,
-  AltiumSchLabelRecord,
-  AltiumSchPinRecord,
-} from "altiumts"
+import { type AltiumSchComponentRecord, AltiumSchPinRecord } from "altiumts"
 import type { SchematicComponent } from "circuit-json"
 import { getBoundsCenter, scaleLength, scalePoint } from "../geometry"
 import {
@@ -11,12 +7,12 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
-import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
-import { createPinClockSymbol } from "./createPinClockSymbol"
+import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
+import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
 import { getComponentIdentity } from "./getComponentIdentity"
+import { getVisibleSymbolLabels } from "./getVisibleSymbolLabels"
 import { isOwnedRecordVisible } from "./isOwnedRecordVisible"
 import { isPinHidden } from "./isPinHidden"
 import type { ComponentConversionContext } from "./types"
@@ -45,17 +41,7 @@ export function convertComponent(
       (!isPinHidden(record) || options.includeHidden === true),
   )
   if (pins.length === 0) return
-  const visibleSymbolLabels = new Set(
-    visibleOwnedRecords
-      .filter(
-        (record): record is AltiumSchLabelRecord =>
-          record instanceof AltiumSchLabelRecord,
-      )
-      .flatMap((record) => {
-        const text = record.text?.trim().toUpperCase()
-        return text ? [text] : []
-      }),
-  )
+  const visibleSymbolLabels = getVisibleSymbolLabels(visibleOwnedRecords)
   const identity = getComponentIdentity(
     { componentIndex, componentRecord, ownedRecords },
     context,
@@ -72,17 +58,6 @@ export function convertComponent(
       }),
     )
   }
-  const logicGateLabels = new Set([
-    ...visibleSymbolLabels,
-    ...pins.flatMap((pin) => {
-      const name = pin.getDecoded("NAME")?.trim().toUpperCase()
-      return name ? [name] : []
-    }),
-  ])
-  const hasLogicGateLabels = ["A", "B", "Y"].every((label) =>
-    logicGateLabels.has(label),
-  )
-
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
       document,
@@ -103,25 +78,13 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
-  const ownedComponentElements =
-    symbolSelection || !hasLogicGateLabels
-      ? []
-      : convertOwnedComponentRecords(
-          {
-            ownedRecords: visibleOwnedRecords,
-            schematicComponentId: identity.schematicComponentId,
-          },
-          context,
-        ).sort((left, right) => {
-          const leftIsFilled =
-            "is_filled" in left && left.is_filled === true ? 1 : 0
-          const rightIsFilled =
-            "is_filled" in right && right.is_filled === true ? 1 : 0
-          return rightIsFilled - leftIsFilled
-        })
-  const hasOwnedLogicGateBody = ownedComponentElements.some(
-    (element) => element.type === "schematic_arc",
-  )
+  const ownedLogicGateBody = symbolSelection
+    ? undefined
+    : convertOwnedLogicGateBody(
+        { identity, pins, records: visibleOwnedRecords, visibleSymbolLabels },
+        context,
+      )
+  const hasOwnedLogicGateBody = ownedLogicGateBody !== undefined
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -138,22 +101,13 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinEdgeElements = componentPorts.flatMap(
-    ({ isSchematicVisible, schematicPort }, pinIndex) => {
-      if (!isSchematicVisible) return []
-      const pin = pins[pinIndex]
-      if (!pin) return []
-      const edgeElementParameters = {
-        pin,
-        recordIndex: document.records.indexOf(pin),
-        scale: options.scale,
-        schematicPort,
-      }
-      return [
-        createAlphanumericPinDesignatorText(edgeElementParameters),
-        createPinClockSymbol(edgeElementParameters),
-      ].filter((element) => element !== undefined)
+  const pinEdgeElements = createComponentPinEdgeElements(
+    {
+      componentPorts,
+      includeNumericDesignators: hasOwnedLogicGateBody,
+      pins,
     },
+    context,
   )
   convertedPorts.push(...componentPorts)
   elements.push(
@@ -164,7 +118,7 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
-    ...(hasOwnedLogicGateBody ? ownedComponentElements : []),
+    ...(ownedLogicGateBody ?? []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
