@@ -11,6 +11,7 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
+import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
 import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
 import { createPinClockSymbol } from "./createPinClockSymbol"
 import { createSourceComponent } from "./createSourceComponent"
@@ -71,6 +72,16 @@ export function convertComponent(
       }),
     )
   }
+  const logicGateLabels = new Set([
+    ...visibleSymbolLabels,
+    ...pins.flatMap((pin) => {
+      const name = pin.getDecoded("NAME")?.trim().toUpperCase()
+      return name ? [name] : []
+    }),
+  ])
+  const hasLogicGateLabels = ["A", "B", "Y"].every((label) =>
+    logicGateLabels.has(label),
+  )
 
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
@@ -92,6 +103,25 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
+  const ownedComponentElements =
+    symbolSelection || !hasLogicGateLabels
+      ? []
+      : convertOwnedComponentRecords(
+          {
+            ownedRecords: visibleOwnedRecords,
+            schematicComponentId: identity.schematicComponentId,
+          },
+          context,
+        ).sort((left, right) => {
+          const leftIsFilled =
+            "is_filled" in left && left.is_filled === true ? 1 : 0
+          const rightIsFilled =
+            "is_filled" in right && right.is_filled === true ? 1 : 0
+          return rightIsFilled - leftIsFilled
+        })
+  const hasOwnedLogicGateBody = ownedComponentElements.some(
+    (element) => element.type === "schematic_arc",
+  )
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -134,11 +164,12 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
+    ...(hasOwnedLogicGateBody ? ownedComponentElements : []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: true,
+    is_box_with_pins: !hasOwnedLogicGateBody,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -147,7 +178,11 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
-  if (!symbolSelection && options.includeText !== false) {
+  if (
+    !symbolSelection &&
+    !hasOwnedLogicGateBody &&
+    options.includeText !== false
+  ) {
     addComponentFallbackText({
       componentIndex,
       designator: identity.designator,
