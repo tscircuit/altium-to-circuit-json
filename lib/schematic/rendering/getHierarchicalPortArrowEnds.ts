@@ -2,7 +2,7 @@ import type { AltiumRecord } from "altiumts"
 import {
   getPortConnectionGeometry,
   getRecordDirection,
-  getWireSegments,
+  getSchematicConnectionSegments,
 } from "../connectivity"
 import type { SchematicContext } from "../document"
 
@@ -29,15 +29,10 @@ export function getHierarchicalPortArrowEnds({
   }
   if (ioType === 3) return { pointAtStart: true, pointAtEnd: true }
 
-  const wireSegments = getWireSegments(
-    context.records.filter(
-      (candidate) =>
-        candidate.recordKind === "26" || candidate.recordKind === "27",
-    ),
-  )
+  const connectionSegments = getSchematicConnectionSegments(context.records)
   const bodyDirection = getPortConnectionGeometry(
     record,
-    wireSegments,
+    connectionSegments,
   )?.bodyDirection
   const connectedAtEnd =
     bodyDirection !== undefined && bodyDirection !== getRecordDirection(record)

@@ -3,6 +3,7 @@ import { parseAltiumSchDoc } from "altiumts"
 import type { SchematicNetLabel, SchematicText } from "circuit-json"
 import { any_circuit_element } from "circuit-json"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
+import { getHierarchicalPortArrowEnds } from "../../lib/schematic/rendering/getHierarchicalPortArrowEnds"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
 
@@ -149,6 +150,28 @@ test("anchored Altium ports face away from their wired end", () => {
     anchor_side: "bottom",
     schematic_trace_id: "schematic_trace_altium_9",
   })
+})
+
+test("port arrows detect direct pins and wire interiors", () => {
+  const document = parseAltiumSchDoc(
+    [
+      "|RECORD=31",
+      "|RECORD=18|LOCATION.X=0|LOCATION.Y=10|WIDTH=10|HEIGHT=4|IOTYPE=1|ORIENTATION=0",
+      "|RECORD=2|LOCATION.X=0|LOCATION.Y=10|PINLENGTH=10|ORIENTATION=0",
+      "|RECORD=18|LOCATION.X=0|LOCATION.Y=30|WIDTH=10|HEIGHT=4|IOTYPE=1|ORIENTATION=0",
+      "|RECORD=27|LOCATIONCOUNT=2|X1=5|Y1=30|X2=15|Y2=30",
+    ].join("\n"),
+  )
+  const context = { document, records: document.records, scale: 1 }
+
+  expect(
+    document.ports.map((record) =>
+      getHierarchicalPortArrowEnds({ context, record }),
+    ),
+  ).toEqual([
+    { pointAtEnd: false, pointAtStart: true },
+    { pointAtEnd: false, pointAtStart: true },
+  ])
 })
 
 test("sheet 12 preserves inline and anchored Altium labels independently", async () => {

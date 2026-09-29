@@ -6,13 +6,13 @@ import {
 } from "../geometry"
 import type { SchematicSegment } from "../model"
 import { VECTOR_BY_DIRECTION } from "./constants"
-import { doesPointTouchWireEndpoint } from "./doesPointTouchWireEndpoint"
+import { doesPointTouchSchematicSegment } from "./doesPointTouchSchematicSegment"
 import { getOppositeDirection } from "./getOppositeDirection"
 import { getRecordDirection } from "./getRecordDirection"
 
 export function getPortConnectionGeometry(
   record: AltiumRecord,
-  wireSegments: SchematicSegment[],
+  connectionSegments: SchematicSegment[],
 ): { anchor: AltiumPoint; bodyDirection: CardinalDirection } | undefined {
   const origin = getLocation(record)
   if (!origin) return undefined
@@ -27,8 +27,14 @@ export function getPortConnectionGeometry(
     x: origin.x + directionVector.x * width,
     y: origin.y + directionVector.y * width,
   }
-  const originConnected = doesPointTouchWireEndpoint(origin, wireSegments)
-  const extremityConnected = doesPointTouchWireEndpoint(extremity, wireSegments)
+  const originConnected = doesPointTouchSchematicSegment(
+    origin,
+    connectionSegments,
+  )
+  const extremityConnected = doesPointTouchSchematicSegment(
+    extremity,
+    connectionSegments,
+  )
   const connectedEnd = record.getNumber("CONNECTEDEND")
   const connectsAtExtremity =
     connectedEnd === 2 ||
