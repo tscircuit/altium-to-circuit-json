@@ -3,6 +3,7 @@ import type { PcbFabricationNoteDimension } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import { getRecordLayer, mapMechanicalLayer } from "../layers"
 import { BOARD_GRAPHICS_COMPONENT_ID, FABRICATION_NOTE_COLOR } from "../model"
+import { getDimensionAxis } from "./getDimensionAxis"
 import { getDimensionText } from "./getDimensionText"
 import { getMeasurement } from "./getMeasurement"
 
@@ -19,12 +20,14 @@ export function convertPcbDimension({
 
   const deltaX = end.x - start.x
   const deltaY = end.y - start.y
-  const lengthMils = Math.hypot(deltaX, deltaY)
+  const axis = getDimensionAxis(record)
+  const signedLengthMils = deltaX * axis.x + deltaY * axis.y
+  const lengthMils = Math.abs(signedLengthMils)
   if (lengthMils === 0) return undefined
 
   const perpendicular = {
-    x: -deltaY / lengthMils,
-    y: deltaX / lengthMils,
+    x: -axis.y,
+    y: axis.x,
   }
   const lineAnchor = record.dimensionLineAnchor ?? start
   const signedOffsetMils =
@@ -38,7 +41,10 @@ export function convertPcbDimension({
     pcb_component_id: BOARD_GRAPHICS_COMPONENT_ID,
     layer: mapMechanicalLayer(getRecordLayer(record)),
     from: toMillimeterPoint(start),
-    to: toMillimeterPoint(end),
+    to: toMillimeterPoint({
+      x: start.x + axis.x * signedLengthMils,
+      y: start.y + axis.y * signedLengthMils,
+    }),
     text: getDimensionText(record, lengthMils),
     offset_distance: milsToMillimeters(Math.abs(signedOffsetMils)),
     offset_direction: {

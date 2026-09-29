@@ -11,9 +11,21 @@ test(
         filename: TI_EVM_REFERENCE_FILENAMES.lm251772EvmPd.pcb,
         focusOnBoard: true,
         pcbName: "TI LM251772EVM-PD",
+        showSolderMask: true,
       })
 
     expectValidImportedPcb({ circuitJson, circuitJsonSvg })
+    const dimensions = circuitJson.filter(
+      (element) => element.type === "pcb_fabrication_note_dimension",
+    )
+    expect(dimensions).toHaveLength(3)
+    expect(
+      dimensions.every(
+        (dimension) =>
+          Math.abs(dimension.from.x - dimension.to.x) < 1e-9 ||
+          Math.abs(dimension.from.y - dimension.to.y) < 1e-9,
+      ),
+    ).toBe(true)
     await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
   },
   { timeout: 120_000 },
