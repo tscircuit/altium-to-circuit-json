@@ -1,4 +1,7 @@
-import type { AltiumRecord } from "altiumts"
+import {
+  type AltiumRecord,
+  resolveSchematicParameterReferenceWithContext,
+} from "altiumts"
 import type {
   AnyCircuitElement,
   SchematicRect,
@@ -41,12 +44,18 @@ export function renderTextRecord({
   if (kind === "4" || kind === "25" || kind === "34" || kind === "41") {
     if (options.includeText === false) return []
     if (record.getBoolean("ISHIDDEN") && !options.includeHidden) return []
-    const text =
+    const reference =
       record.getDecoded("TEXT") ??
       record.getDecoded("NAME") ??
       record.getDecoded("DESIGNATOR")
     const location = getLocation(record)
-    if (!text || !location) return []
+    if (!reference || !location) return []
+    const text =
+      resolveSchematicParameterReferenceWithContext({
+        document: context.document,
+        record,
+        reference,
+      }) ?? reference
     return [createText({ record, index, text, location, color, context })]
   }
 
