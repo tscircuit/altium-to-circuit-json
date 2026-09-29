@@ -11,6 +11,8 @@ import type { ConvertedPort, SemanticSchematicOptions } from "../model"
 import { parseAltiumPinLabel } from "./parseAltiumPinLabel"
 import { parsePinNumber } from "./parsePinNumber"
 
+const ALTIUM_PIN_LABEL_FONT_SIZE = 6
+
 export function convertComponentPin({
   document,
   options,
@@ -71,6 +73,10 @@ export function convertComponentPin({
     ...(showName && name
       ? {
           display_pin_label: parsedPinLabel.displayText,
+          display_pin_label_font_size: scaleLength(
+            ALTIUM_PIN_LABEL_FONT_SIZE,
+            options.scale,
+          ),
           ...(parsedPinLabel.textParts
             ? { display_pin_label_text_parts: parsedPinLabel.textParts }
             : {}),
