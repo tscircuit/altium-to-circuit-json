@@ -9,6 +9,7 @@ import { getPcbComponentId } from "../identifiers"
 import type { PcbCopperLayerMap } from "../layers"
 import type { PcbComponentContext } from "../model"
 import { isElectricalPcbPad } from "../pads/isElectricalPcbPad"
+import { assertSinglePcbPinNet } from "./assertSinglePcbPinNet"
 
 interface LogicalPcbPin {
   name: string
@@ -56,6 +57,12 @@ export function createPcbComponentContext({
     if (!includePorts) continue
 
     for (const pin of logicalPins) {
+      assertSinglePcbPinNet({
+        component,
+        document,
+        pinName: pin.name,
+        records: pin.records,
+      })
       const firstRecord = pin.records[0]
       const recordIndex = firstRecord
         ? recordIndexByRecord.get(firstRecord)

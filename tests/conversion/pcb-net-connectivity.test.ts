@@ -134,3 +134,20 @@ test("preserves Altium PCB net identities on routed copper", () => {
     ),
   ).toBe(true)
 })
+
+test("rejects one component pin assigned to multiple Altium nets", () => {
+  const document = parseAltiumPcbDoc(
+    [
+      "|RECORD=Board|VERSION=5.0|KIND0=0|VX0=0mil|VY0=0mil|KIND1=0|VX1=500mil|VY1=0mil|KIND2=0|VX2=500mil|VY2=500mil|KIND3=0|VX3=0mil|VY3=500mil|KIND4=0|VX4=0mil|VY4=0mil",
+      "|RECORD=Component|ID=0|LAYER=TOP|X=150mil|Y=150mil|SOURCEDESIGNATOR=U1",
+      "|RECORD=Net|NAME=NET_A",
+      "|RECORD=Net|NAME=NET_B",
+      "|RECORD=Pad|NAME=1|COMPONENT=0|NET=0|LAYER=TOP|X=100mil|Y=100mil|XSIZE=40mil|YSIZE=40mil|SHAPE=RECTANGLE",
+      "|RECORD=Pad|NAME=1|COMPONENT=0|NET=1|LAYER=TOP|X=200mil|Y=100mil|XSIZE=40mil|YSIZE=40mil|SHAPE=RECTANGLE",
+    ].join("\n"),
+  )
+
+  expect(() => convertAltiumPcbDocToCircuitJson(document)).toThrow(
+    "Altium PCB component U1 pin 1 is assigned to multiple nets: NET_A, NET_B",
+  )
+})
