@@ -7,7 +7,7 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
+import { convertOwnedComponentBody } from "./convertOwnedComponentBody"
 import { convertPinlessComponent } from "./convertPinlessComponent"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
@@ -86,13 +86,13 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
-  const ownedLogicGateBody = symbolSelection
+  const ownedComponentBody = symbolSelection
     ? undefined
-    : convertOwnedLogicGateBody(
+    : convertOwnedComponentBody(
         { identity, pins, records: visibleOwnedRecords, visibleSymbolLabels },
         context,
       )
-  const hasOwnedLogicGateBody = ownedLogicGateBody !== undefined
+  const hasOwnedComponentBody = ownedComponentBody !== undefined
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -112,7 +112,7 @@ export function convertComponent(
   const pinEdgeElements = createComponentPinEdgeElements(
     {
       componentPorts,
-      includeNumericDesignators: hasOwnedLogicGateBody,
+      includeNumericDesignators: hasOwnedComponentBody,
       pins,
     },
     context,
@@ -126,12 +126,12 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
-    ...(ownedLogicGateBody ?? []),
+    ...(ownedComponentBody ?? []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: !hasOwnedLogicGateBody,
+    is_box_with_pins: !hasOwnedComponentBody,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -142,7 +142,7 @@ export function convertComponent(
   elements.push(schematicComponent)
   if (
     !symbolSelection &&
-    !hasOwnedLogicGateBody &&
+    !hasOwnedComponentBody &&
     options.includeText !== false
   ) {
     addComponentFallbackText({
