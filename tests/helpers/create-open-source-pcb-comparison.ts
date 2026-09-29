@@ -2,13 +2,14 @@ import {
   AltiumBinaryPcbDoc,
   AltiumPcbDoc,
   type AltiumPcbDocument,
-  getPcbBoardGeometry,
   parseAltiumFile,
   serializeAltiumPcbToSvg,
 } from "altiumts"
 import type { AnyCircuitElement } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumToCircuitJson } from "../../lib"
+import { MILS_TO_MILLIMETERS } from "../../lib/pcb/model/constants"
+import { getPcbBoardViewportBounds } from "./get-pcb-board-viewport-bounds"
 import { readReferenceBytes } from "./read-reference"
 import { stackAltiumAndCircuitJsonSvgs } from "./stack-svg-comparison"
 
@@ -43,36 +44,27 @@ export async function createOpenSourcePcbComparison({
   if (!board) throw new Error(`${filename} did not produce a PCB board`)
 
   const boardBounds = focusOnBoard
-    ? getPcbBoardGeometry(document).outline.bounds
+    ? getPcbBoardViewportBounds(board)
     : undefined
-  if (focusOnBoard && !boardBounds) {
-    throw new Error(`${filename} does not contain an Altium board outline`)
-  }
-  const boardPadding = boardBounds
-    ? Math.max(
-        boardBounds.maxX - boardBounds.minX,
-        boardBounds.maxY - boardBounds.minY,
-      ) * 0.05
-    : 0
   const altiumSvg = serializeAltiumPcbToSvg(document, {
     height: 600,
     title: "altiumts source rendering",
     viewBox:
       focusOnBoard && boardBounds
         ? {
-            height: boardBounds.maxY - boardBounds.minY + 2 * boardPadding,
-            width: boardBounds.maxX - boardBounds.minX + 2 * boardPadding,
-            x: boardBounds.minX - boardPadding,
-            y: boardBounds.minY - boardPadding,
+            height: (boardBounds.maxY - boardBounds.minY) / MILS_TO_MILLIMETERS,
+            width: (boardBounds.maxX - boardBounds.minX) / MILS_TO_MILLIMETERS,
+            x: boardBounds.minX / MILS_TO_MILLIMETERS,
+            y: boardBounds.minY / MILS_TO_MILLIMETERS,
           }
         : undefined,
     width: 800,
   })
   const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
-    matchBoardAspectRatio: true,
-    viewportTarget: focusOnBoard
-      ? { pcb_board_id: board.pcb_board_id }
-      : undefined,
+    height: 600,
+    matchBoardAspectRatio: !focusOnBoard,
+    viewport: boardBounds,
+    width: 800,
   })
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
     altiumSvg,
