@@ -19,6 +19,7 @@ test(
       circuitJson,
       document,
       expectedConnectionCount: 410,
+      expectedInheritedCopperAreaCount: 395,
     })
     await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
   },

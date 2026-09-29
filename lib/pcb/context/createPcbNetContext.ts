@@ -6,6 +6,16 @@ export function createPcbNetContext(
   document: AltiumPcbDocument,
   componentContext: PcbComponentContext,
 ): PcbNetContext {
+  const getNetForRecord = (
+    record: Parameters<typeof document.getNetForRecord>[0],
+  ) => {
+    const directNet = document.getNetForRecord(record)
+    if (directNet) return directNet
+
+    const parentPolygon = document.getPolygonForRecord(record)
+    if (!parentPolygon || parentPolygon === record) return undefined
+    return document.getNetForRecord(parentPolygon)
+  }
   const sourceNetIdByAltiumNet = new Map(
     document.nets.map((net, index) => [net, `source_net_altium_pcb_${index}`]),
   )
@@ -53,11 +63,11 @@ export function createPcbNetContext(
   return {
     elements,
     getSourceNetId: (record) => {
-      const net = document.getNetForRecord(record)
+      const net = getNetForRecord(record)
       return net ? sourceNetIdByAltiumNet.get(net) : undefined
     },
     getSourceTraceId: (record) => {
-      const net = document.getNetForRecord(record)
+      const net = getNetForRecord(record)
       return net ? sourceTraceIdByAltiumNet.get(net) : undefined
     },
   }

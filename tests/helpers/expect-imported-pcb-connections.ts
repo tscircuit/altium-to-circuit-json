@@ -1,15 +1,22 @@
 import { expect } from "bun:test"
 import { AltiumPadRecord, type AltiumPcbDocument } from "altiumts"
-import type { AnyCircuitElement, PcbPlatedHole, PcbSmtPad } from "circuit-json"
+import type {
+  AnyCircuitElement,
+  PcbCopperPour,
+  PcbPlatedHole,
+  PcbSmtPad,
+} from "circuit-json"
 
 export function expectImportedPcbConnections({
   circuitJson,
   document,
   expectedConnectionCount,
+  expectedInheritedCopperAreaCount,
 }: {
   circuitJson: AnyCircuitElement[]
   document: AltiumPcbDocument
   expectedConnectionCount: number
+  expectedInheritedCopperAreaCount: number
 }): void {
   const sourceNets = circuitJson.filter(
     (element) => element.type === "source_net",
@@ -41,6 +48,10 @@ export function expectImportedPcbConnections({
   const recordIndexByRecord = new Map(
     document.records.map((record, index) => [record, index]),
   )
+  const copperPours = circuitJson.filter(
+    (element): element is PcbCopperPour => element.type === "pcb_copper_pour",
+  )
+  let inheritedCopperAreaCount = 0
 
   expect(document.nets).toHaveLength(expectedConnectionCount)
   expect(sourceNets).toHaveLength(expectedConnectionCount)
@@ -94,4 +105,38 @@ export function expectImportedPcbConnections({
       ...expectedSourcePortIds,
     ])
   }
+
+  for (const pour of copperPours) {
+    const recordMatch = /^pcb_copper_pour_altium_(?:region|fill)_(\d+)$/u.exec(
+      pour.pcb_copper_pour_id,
+    )
+    const polygonMatch = /^pcb_copper_pour_altium_polygon_(\d+)$/u.exec(
+      pour.pcb_copper_pour_id,
+    )
+    const record = recordMatch
+      ? document.records[Number(recordMatch[1])]
+      : polygonMatch
+        ? document.polygons[Number(polygonMatch[1])]
+        : undefined
+    if (!record) {
+      throw new Error(`Missing Altium record for ${pour.pcb_copper_pour_id}`)
+    }
+
+    const directNet = document.getNetForRecord(record)
+    const parentPolygon = document.getPolygonForRecord(record)
+    const inheritedNet = parentPolygon
+      ? document.getNetForRecord(parentPolygon)
+      : undefined
+    if (!directNet && inheritedNet) inheritedCopperAreaCount += 1
+    const expectedNet = directNet ?? inheritedNet
+    const expectedNetIndex = expectedNet
+      ? document.nets.indexOf(expectedNet)
+      : -1
+    const expectedSourceNetId =
+      expectedNetIndex < 0
+        ? undefined
+        : `source_net_altium_pcb_${expectedNetIndex}`
+    expect(pour.source_net_id).toBe(expectedSourceNetId)
+  }
+  expect(inheritedCopperAreaCount).toBe(expectedInheritedCopperAreaCount)
 }

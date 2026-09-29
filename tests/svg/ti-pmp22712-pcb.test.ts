@@ -19,6 +19,7 @@ test(
       circuitJson,
       document,
       expectedConnectionCount: 23,
+      expectedInheritedCopperAreaCount: 20,
     })
     const wrappedQuarterCircle = circuitJson.find(
       (element) =>

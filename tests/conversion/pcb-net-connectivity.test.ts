@@ -151,3 +151,38 @@ test("rejects one component pin assigned to multiple Altium nets", () => {
     "Altium PCB component U1 pin 1 is assigned to multiple nets: NET_A, NET_B",
   )
 })
+
+test("inherits a poured region net from its parent polygon", () => {
+  const outline =
+    "|KIND0=0|VX0=0mil|VY0=0mil|KIND1=0|VX1=100mil|VY1=0mil|KIND2=0|VX2=100mil|VY2=100mil|KIND3=0|VX3=0mil|VY3=100mil|KIND4=0|VX4=0mil|VY4=0mil"
+  const document = parseAltiumPcbDoc(
+    [
+      "|RECORD=Board",
+      "|RECORD=Net|NAME=PARENT_NET",
+      "|RECORD=Net|NAME=DIRECT_NET",
+      `|RECORD=Polygon|ID=7|NET=0|LAYER=TOP${outline}`,
+      `|RECORD=Region|POLYGON=7|LAYER=TOP|REGIONKIND=COPPER${outline}`,
+      `|RECORD=Region|POLYGON=7|NET=1|LAYER=TOP|REGIONKIND=COPPER${outline}`,
+    ].join("\n"),
+  )
+
+  const pours = convertAltiumPcbDocToCircuitJson(document).filter(
+    (element) => element.type === "pcb_copper_pour",
+  )
+
+  expect(
+    pours.map(({ pcb_copper_pour_id, source_net_id }) => ({
+      pcb_copper_pour_id,
+      source_net_id,
+    })),
+  ).toEqual([
+    {
+      pcb_copper_pour_id: "pcb_copper_pour_altium_region_4",
+      source_net_id: "source_net_altium_pcb_0",
+    },
+    {
+      pcb_copper_pour_id: "pcb_copper_pour_altium_region_5",
+      source_net_id: "source_net_altium_pcb_1",
+    },
+  ])
+})
