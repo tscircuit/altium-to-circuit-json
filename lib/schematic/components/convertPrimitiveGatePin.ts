@@ -6,6 +6,7 @@ import type { ConvertedPort } from "../model"
 import { renderPin } from "../rendering/renderPin"
 import { altiumColorToCss, getFontSize } from "../text"
 import { createPinClockSymbol } from "./createPinClockSymbol"
+import { parseAltiumPinLabel } from "./parseAltiumPinLabel"
 import type { ComponentConversionContext } from "./types"
 
 export function convertPrimitiveGatePin(
@@ -33,6 +34,16 @@ export function convertPrimitiveGatePin(
     options: context.options,
     color,
   })
+  const nameLabel = elements.find(
+    (element) =>
+      element.type === "schematic_text" &&
+      element.schematic_text_id === `schematic_pin_name_altium_${index}`,
+  )
+  if (nameLabel?.type === "schematic_text") {
+    const parsedLabel = parseAltiumPinLabel(nameLabel.text)
+    nameLabel.text = parsedLabel.displayText
+    if (parsedLabel.textParts) nameLabel.text_parts = parsedLabel.textParts
+  }
   const line = elements.find((element) => element.type === "schematic_line")
   if (line) {
     line.stroke_width = scaleLength(1, scale)
