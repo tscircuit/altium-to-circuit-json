@@ -3,6 +3,7 @@ import type { AnyCircuitElement, SchematicPath } from "circuit-json"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "../document"
 import { getCoordinateOrFallback, getLocation, scalePoint } from "../geometry"
 import { altiumColorToCss, createDirectText, getFontSize } from "../text"
+import { getHierarchicalPortArrowEnds } from "./getHierarchicalPortArrowEnds"
 import type { SymbolRenderOptions } from "./types"
 
 export function renderHierarchicalPort({
@@ -30,36 +31,54 @@ export function renderHierarchicalPort({
   )
   const halfHeight = height / 2
   const pointDepth = Math.min(width * 0.22, height)
-  const ioType = Number(record.getCaseInsensitive("IOTYPE") ?? 0)
+  const { pointAtEnd, pointAtStart } = getHierarchicalPortArrowEnds({
+    context,
+    record,
+  })
   const points =
-    ioType === 1
+    pointAtStart && pointAtEnd
       ? [
           { x: location.x, y: location.y },
           { x: location.x + pointDepth, y: location.y + halfHeight },
-          { x: location.x + width, y: location.y + halfHeight },
-          { x: location.x + width, y: location.y - halfHeight },
+          {
+            x: location.x + width - pointDepth,
+            y: location.y + halfHeight,
+          },
+          { x: location.x + width, y: location.y },
+          {
+            x: location.x + width - pointDepth,
+            y: location.y - halfHeight,
+          },
           { x: location.x + pointDepth, y: location.y - halfHeight },
         ]
-      : ioType === 2
+      : pointAtStart
         ? [
-            { x: location.x, y: location.y + halfHeight },
-            {
-              x: location.x + width - pointDepth,
-              y: location.y + halfHeight,
-            },
-            { x: location.x + width, y: location.y },
-            {
-              x: location.x + width - pointDepth,
-              y: location.y - halfHeight,
-            },
-            { x: location.x, y: location.y - halfHeight },
-          ]
-        : [
-            { x: location.x, y: location.y + halfHeight },
+            { x: location.x, y: location.y },
+            { x: location.x + pointDepth, y: location.y + halfHeight },
             { x: location.x + width, y: location.y + halfHeight },
             { x: location.x + width, y: location.y - halfHeight },
-            { x: location.x, y: location.y - halfHeight },
+            { x: location.x + pointDepth, y: location.y - halfHeight },
           ]
+        : pointAtEnd
+          ? [
+              { x: location.x, y: location.y + halfHeight },
+              {
+                x: location.x + width - pointDepth,
+                y: location.y + halfHeight,
+              },
+              { x: location.x + width, y: location.y },
+              {
+                x: location.x + width - pointDepth,
+                y: location.y - halfHeight,
+              },
+              { x: location.x, y: location.y - halfHeight },
+            ]
+          : [
+              { x: location.x, y: location.y + halfHeight },
+              { x: location.x + width, y: location.y + halfHeight },
+              { x: location.x + width, y: location.y - halfHeight },
+              { x: location.x, y: location.y - halfHeight },
+            ]
   const elements: AnyCircuitElement[] = [
     {
       type: "schematic_path",
