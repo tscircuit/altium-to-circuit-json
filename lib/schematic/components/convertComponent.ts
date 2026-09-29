@@ -1,8 +1,4 @@
-import {
-  type AltiumSchComponentRecord,
-  AltiumSchLabelRecord,
-  AltiumSchPinRecord,
-} from "altiumts"
+import { type AltiumSchComponentRecord, AltiumSchPinRecord } from "altiumts"
 import type { SchematicComponent } from "circuit-json"
 import { getBoundsCenter, scaleLength, scalePoint } from "../geometry"
 import {
@@ -11,11 +7,13 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
+import { convertOwnedSingleInputGateBody } from "./convertOwnedSingleInputGateBody"
 import { convertPinlessComponent } from "./convertPinlessComponent"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
 import { getComponentIdentity } from "./getComponentIdentity"
+import { getVisibleSymbolLabels } from "./getVisibleSymbolLabels"
 import { isOwnedRecordVisible } from "./isOwnedRecordVisible"
 import { isPinHidden } from "./isPinHidden"
 import type { ComponentConversionContext } from "./types"
@@ -66,17 +64,7 @@ export function convertComponent(
     )
     return
   }
-  const visibleSymbolLabels = new Set(
-    visibleOwnedRecords
-      .filter(
-        (record): record is AltiumSchLabelRecord =>
-          record instanceof AltiumSchLabelRecord,
-      )
-      .flatMap((record) => {
-        const text = record.text?.trim().toUpperCase()
-        return text ? [text] : []
-      }),
-  )
+  const visibleSymbolLabels = getVisibleSymbolLabels(visibleOwnedRecords)
 
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
@@ -98,6 +86,12 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
+  const ownedGateBody = symbolSelection
+    ? undefined
+    : convertOwnedSingleInputGateBody(
+        { identity, records: visibleOwnedRecords, componentPorts },
+        context,
+      )
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -114,10 +108,9 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinEdgeElements = createComponentPinEdgeElements(
-    { componentPorts, pins },
-    context,
-  )
+  const pinEdgeElements = ownedGateBody
+    ? []
+    : createComponentPinEdgeElements({ componentPorts, pins }, context)
   convertedPorts.push(...componentPorts)
   elements.push(
     ...componentPorts.flatMap(
@@ -127,11 +120,12 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
+    ...(ownedGateBody ?? []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: true,
+    is_box_with_pins: !ownedGateBody,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -140,7 +134,7 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
-  if (!symbolSelection && options.includeText !== false) {
+  if (!symbolSelection && !ownedGateBody && options.includeText !== false) {
     addComponentFallbackText({
       componentIndex,
       designator: identity.designator,
