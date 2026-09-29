@@ -7,6 +7,7 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
+import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
 import { convertOwnedSingleInputGateBody } from "./convertOwnedSingleInputGateBody"
 import { convertPinlessComponent } from "./convertPinlessComponent"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
@@ -48,12 +49,8 @@ export function convertComponent(
   if (identity.shouldCreateSourceComponent) {
     elements.push(
       createSourceComponent({
-        displayText: identity.displayText,
-        designator: identity.designator,
-        libraryReference: identity.libraryReference,
-        manufacturerPartNumber: identity.manufacturerPartNumber,
+        ...identity,
         pinCount: pins.length,
-        sourceComponentId: identity.sourceComponentId,
       }),
     )
   }
@@ -65,7 +62,6 @@ export function convertComponent(
     return
   }
   const visibleSymbolLabels = getVisibleSymbolLabels(visibleOwnedRecords)
-
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
       document,
@@ -86,12 +82,20 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
-  const ownedGateBody = symbolSelection
+  const singleInputGateBody = symbolSelection
     ? undefined
     : convertOwnedSingleInputGateBody(
         { identity, records: visibleOwnedRecords, componentPorts },
         context,
       )
+  const ownedGateBody =
+    singleInputGateBody ??
+    (symbolSelection
+      ? undefined
+      : convertOwnedLogicGateBody(
+          { identity, pins, records: visibleOwnedRecords, visibleSymbolLabels },
+          context,
+        ))
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -108,9 +112,17 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinEdgeElements = ownedGateBody
+  const pinEdgeElements = singleInputGateBody
     ? []
-    : createComponentPinEdgeElements({ componentPorts, pins }, context)
+    : createComponentPinEdgeElements(
+        {
+          componentPorts,
+          pins,
+          includeNumericDesignators:
+            Boolean(ownedGateBody) && options.includeText !== false,
+        },
+        context,
+      )
   convertedPorts.push(...componentPorts)
   elements.push(
     ...componentPorts.flatMap(
