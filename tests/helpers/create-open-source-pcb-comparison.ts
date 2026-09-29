@@ -62,7 +62,7 @@ export async function createOpenSourcePcbComparison({
   })
   const circuitJsonSvg = convertCircuitJsonToPcbSvg(circuitJson, {
     height: 600,
-    matchBoardAspectRatio: !focusOnBoard,
+    matchBoardAspectRatio: true,
     viewport: boardBounds,
     width: 800,
   })
