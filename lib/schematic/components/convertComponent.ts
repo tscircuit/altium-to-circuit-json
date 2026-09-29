@@ -6,6 +6,7 @@ import {
   selectCircuitJsonSymbol,
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
+import { addComponentRatingLabels } from "./addComponentRatingLabels"
 import { convertComponentPin } from "./convertComponentPin"
 import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
 import { convertPinlessComponent } from "./convertPinlessComponent"
@@ -48,12 +49,8 @@ export function convertComponent(
   if (identity.shouldCreateSourceComponent) {
     elements.push(
       createSourceComponent({
-        displayText: identity.displayText,
-        designator: identity.designator,
-        libraryReference: identity.libraryReference,
-        manufacturerPartNumber: identity.manufacturerPartNumber,
+        ...identity,
         pinCount: pins.length,
-        sourceComponentId: identity.sourceComponentId,
       }),
     )
   }
@@ -139,6 +136,12 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
+  if (!hasOwnedLogicGateBody) {
+    addComponentRatingLabels(
+      { records: visibleOwnedRecords, schematicComponent },
+      context,
+    )
+  }
   if (
     !symbolSelection &&
     !hasOwnedLogicGateBody &&
@@ -147,7 +150,7 @@ export function convertComponent(
     addComponentFallbackText({
       componentIndex,
       designator: identity.designator,
-      displayText: identity.displayText,
+      displayText: schematicComponent.symbol_display_value ?? "",
       elements,
       schematicComponent,
     })
