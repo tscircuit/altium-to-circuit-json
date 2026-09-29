@@ -8,6 +8,7 @@ import {
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
 import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
+import { convertPinlessComponent } from "./convertPinlessComponent"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
@@ -40,8 +41,6 @@ export function convertComponent(
       record instanceof AltiumSchPinRecord &&
       (!isPinHidden(record) || options.includeHidden === true),
   )
-  if (pins.length === 0) return
-  const visibleSymbolLabels = getVisibleSymbolLabels(visibleOwnedRecords)
   const identity = getComponentIdentity(
     { componentIndex, componentRecord, ownedRecords },
     context,
@@ -58,6 +57,14 @@ export function convertComponent(
       }),
     )
   }
+  if (pins.length === 0) {
+    convertPinlessComponent(
+      { identity, ownedRecords: visibleOwnedRecords },
+      context,
+    )
+    return
+  }
+  const visibleSymbolLabels = getVisibleSymbolLabels(visibleOwnedRecords)
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
       document,
