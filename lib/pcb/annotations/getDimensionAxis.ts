@@ -1,4 +1,5 @@
 import type { AltiumDimensionRecord } from "altiumts"
+import { applyToPoint, rotateDEG } from "transformation-matrix"
 
 export function getDimensionAxis(record: AltiumDimensionRecord): {
   x: number
@@ -6,8 +7,7 @@ export function getDimensionAxis(record: AltiumDimensionRecord): {
 } {
   const angleDegrees = record.getNumber("ANGLE")
   if (angleDegrees !== undefined && Number.isFinite(angleDegrees)) {
-    const angleRadians = (angleDegrees * Math.PI) / 180
-    return { x: Math.cos(angleRadians), y: Math.sin(angleRadians) }
+    return applyToPoint(rotateDEG(angleDegrees), { x: 1, y: 0 })
   }
 
   const start = record.start

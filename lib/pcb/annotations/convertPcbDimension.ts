@@ -3,9 +3,9 @@ import type { PcbFabricationNoteDimension } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import { getRecordLayer, mapMechanicalLayer } from "../layers"
 import { BOARD_GRAPHICS_COMPONENT_ID, FABRICATION_NOTE_COLOR } from "../model"
-import { getDimensionAxis } from "./getDimensionAxis"
 import { getDimensionText } from "./getDimensionText"
 import { getMeasurement } from "./getMeasurement"
+import { getPcbDimensionProjection } from "./getPcbDimensionProjection"
 
 export function convertPcbDimension({
   record,
@@ -14,25 +14,18 @@ export function convertPcbDimension({
   record: AltiumDimensionRecord
   recordIndex: number
 }): PcbFabricationNoteDimension | undefined {
-  const start = record.start
-  const end = record.end
-  if (!start || !end) return undefined
-
-  const deltaX = end.x - start.x
-  const deltaY = end.y - start.y
-  const axis = getDimensionAxis(record)
-  const signedLengthMils = deltaX * axis.x + deltaY * axis.y
-  const lengthMils = Math.abs(signedLengthMils)
-  if (lengthMils === 0) return undefined
+  const projection = getPcbDimensionProjection(record)
+  if (!projection) return undefined
+  const { axis, lengthMils, projectedEnd, referenceStart } = projection
 
   const perpendicular = {
     x: -axis.y,
     y: axis.x,
   }
-  const lineAnchor = record.dimensionLineAnchor ?? start
+  const lineAnchor = record.dimensionLineAnchor ?? referenceStart
   const signedOffsetMils =
-    (lineAnchor.x - start.x) * perpendicular.x +
-    (lineAnchor.y - start.y) * perpendicular.y
+    (lineAnchor.x - referenceStart.x) * perpendicular.x +
+    (lineAnchor.y - referenceStart.y) * perpendicular.y
   const offsetSign = signedOffsetMils < 0 ? -1 : 1
 
   return {
@@ -40,11 +33,8 @@ export function convertPcbDimension({
     pcb_fabrication_note_dimension_id: `pcb_fabrication_note_dimension_altium_${recordIndex}`,
     pcb_component_id: BOARD_GRAPHICS_COMPONENT_ID,
     layer: mapMechanicalLayer(getRecordLayer(record)),
-    from: toMillimeterPoint(start),
-    to: toMillimeterPoint({
-      x: start.x + axis.x * signedLengthMils,
-      y: start.y + axis.y * signedLengthMils,
-    }),
+    from: toMillimeterPoint(referenceStart),
+    to: toMillimeterPoint(projectedEnd),
     text: getDimensionText(record, lengthMils),
     offset_distance: milsToMillimeters(Math.abs(signedOffsetMils)),
     offset_direction: {

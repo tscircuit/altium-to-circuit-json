@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import type { PCBFabricationNotePath } from "circuit-json"
 import { TI_EVM_REFERENCE_FILENAMES } from "../../scripts/references/reference-manifest"
 import { createOpenSourcePcbComparison } from "../helpers/create-open-source-pcb-comparison"
 import { expectValidImportedPcb } from "../helpers/expect-valid-imported-pcb"
@@ -25,6 +26,15 @@ test(
           Math.abs(dimension.from.x - dimension.to.x) < 1e-9 ||
           Math.abs(dimension.from.y - dimension.to.y) < 1e-9,
       ),
+    ).toBe(true)
+    const referenceExtensionPaths = circuitJson.filter(
+      (element): element is PCBFabricationNotePath =>
+        element.type === "pcb_fabrication_note_path" &&
+        element.pcb_fabrication_note_path_id.includes("_dimension_"),
+    )
+    expect(referenceExtensionPaths).toHaveLength(2)
+    expect(
+      referenceExtensionPaths.every((path) => path.route.length === 2),
     ).toBe(true)
     await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
   },
