@@ -3,6 +3,7 @@ import { parseAltiumPcbDoc, serializeAltiumPcbToSvg } from "altiumts"
 import type { PcbCopperPour } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumPcbDocToCircuitJson } from "../../lib"
+import { milsToMillimeters } from "../../lib/pcb/geometry"
 import { stackAltiumAndCircuitJsonSvgs } from "../helpers/stack-svg-comparison"
 
 const boardRecord =
@@ -83,7 +84,7 @@ test("does not infer a hole from a dangling polygon reference", () => {
   expect(pours[0]?.shape).toBe("polygon")
 })
 
-test("does not flatten holed cutouts into a single inner ring", () => {
+test("preserves copper islands inside holed cutouts", () => {
   const holedCutoutRecord = cutoutRecord.replace(
     "|HOLECOUNT=0",
     "|HOLECOUNT=1|HOLE0COUNT=4|HOLE0VX0=2200mil|HOLE0VY0=2200mil|HOLE0VX1=2400mil|HOLE0VY1=2200mil|HOLE0VX2=2400mil|HOLE0VY2=2400mil|HOLE0VX3=2200mil|HOLE0VY3=2400mil",
@@ -99,8 +100,20 @@ test("does not flatten holed cutouts into a single inner ring", () => {
       (element) => element.type === "pcb_copper_pour",
     )
 
-    expect(pours).toHaveLength(1)
-    expect(pours[0]?.shape).toBe("polygon")
+    expect(pours).toHaveLength(2)
+    expect(pours[0]?.shape).toBe("brep")
+    if (pours[0]?.shape === "brep") {
+      expect(pours[0].brep_shape.inner_rings).toHaveLength(1)
+    }
+    expect(pours[1]).toMatchObject({ shape: "polygon", layer: "top" })
+    if (pours[1]?.shape === "polygon") {
+      expect(pours[1].points).toEqual([
+        { x: milsToMillimeters(2200), y: milsToMillimeters(2200) },
+        { x: milsToMillimeters(2400), y: milsToMillimeters(2200) },
+        { x: milsToMillimeters(2400), y: milsToMillimeters(2400) },
+        { x: milsToMillimeters(2200), y: milsToMillimeters(2400) },
+      ])
+    }
   }
 })
 

@@ -25,11 +25,29 @@ export function convertCopperPolygon({
   if (!layer) return []
   const points = contourToPoints(getPcbContour(record))
   if (points.length < 3) return []
-  const innerRings = cutouts
-    .map((cutout) => ({
-      vertices: contourToPoints(getPcbRegionGeometry(cutout).outline),
-    }))
+  const cutoutGeometries = cutouts.map(getPcbRegionGeometry)
+  const innerRings = cutoutGeometries
+    .map((geometry) => ({ vertices: contourToPoints(geometry.outline) }))
     .filter((ring) => ring.vertices.length >= 3)
+  const islandPours: PcbCopperPour[] = cutoutGeometries.flatMap(
+    (geometry, cutoutIndex) =>
+      geometry.holes.flatMap((hole, holeIndex) => {
+        const islandPoints = contourToPoints(hole)
+        return islandPoints.length < 3
+          ? []
+          : [
+              {
+                type: "pcb_copper_pour" as const,
+                pcb_copper_pour_id: `pcb_copper_pour_altium_polygon_${polygonIndex}_cutout_${cutoutIndex}_island_${holeIndex}`,
+                ...(sourceNetId ? { source_net_id: sourceNetId } : {}),
+                covered_with_solder_mask: true,
+                layer,
+                shape: "polygon" as const,
+                points: islandPoints,
+              },
+            ]
+      }),
+  )
 
   return [
     {
@@ -48,5 +66,6 @@ export function convertCopperPolygon({
             },
           }),
     },
+    ...islandPours,
   ]
 }

@@ -44,10 +44,6 @@ export function convertAltiumCopperAreas(
       if (linkedPolygon) polygonsWithCopperRegions.add(linkedPolygon)
     } else if (record.regionKind === "POLYGON_CUTOUT") {
       const cutoutGeometry = getPcbRegionGeometry(record)
-      // A holed cutout also contains copper islands, not just an inner ring.
-      if (cutoutGeometry.holes.length > 0) {
-        continue
-      }
       const candidatePolygons =
         polygonIndex === undefined
           ? document.polygons
