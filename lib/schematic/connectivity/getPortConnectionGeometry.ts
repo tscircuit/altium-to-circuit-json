@@ -1,4 +1,8 @@
-import type { AltiumPoint, AltiumRecord } from "altiumts"
+import {
+  type AltiumPoint,
+  type AltiumRecord,
+  getSchematicConnectedEnd,
+} from "altiumts"
 import {
   type CardinalDirection,
   getCoordinateOrFallback,
@@ -6,7 +10,6 @@ import {
 } from "../geometry"
 import type { SchematicSegment } from "../model"
 import { VECTOR_BY_DIRECTION } from "./constants"
-import { doesPointTouchSchematicSegment } from "./doesPointTouchSchematicSegment"
 import { getOppositeDirection } from "./getOppositeDirection"
 import { getRecordDirection } from "./getRecordDirection"
 
@@ -27,21 +30,15 @@ export function getPortConnectionGeometry(
     x: origin.x + directionVector.x * width,
     y: origin.y + directionVector.y * width,
   }
-  const originConnected = doesPointTouchSchematicSegment(
-    origin,
-    connectionSegments,
-  )
-  const extremityConnected = doesPointTouchSchematicSegment(
-    extremity,
-    connectionSegments,
-  )
-  const connectedEnd = record.getNumber("CONNECTEDEND")
+  const connectedEnd = getSchematicConnectedEnd({
+    end: extremity,
+    segments: connectionSegments,
+    start: origin,
+  })
+  const savedConnectedEnd = record.getNumber("CONNECTEDEND")
   const connectsAtExtremity =
-    connectedEnd === 2 ||
-    (connectedEnd !== 1 &&
-      connectedEnd !== 3 &&
-      !originConnected &&
-      extremityConnected)
+    connectedEnd === "end" ||
+    (connectedEnd === undefined && savedConnectedEnd === 2)
 
   return connectsAtExtremity
     ? {

@@ -1,7 +1,8 @@
-import type { AltiumSchDoc } from "altiumts"
+import { type AltiumSchDoc, getSchematicConnectionSegments } from "altiumts"
 import type { ConvertAltiumSchDocOptions } from "../../api"
 import { getAltiumSheetDimensions } from "./getAltiumSheetDimensions"
 import { getPageFitScale } from "./getPageFitScale"
+import { shouldRenderSchematicRecord } from "./shouldRenderSchematicRecord"
 import type { SchematicConversionContext } from "./types"
 
 export function createSchematicConversionContext({
@@ -18,14 +19,18 @@ export function createSchematicConversionContext({
   if (!Number.isFinite(scale) || scale <= 0) {
     throw new RangeError("schematicUnitScale must be a positive finite number")
   }
+  const renderingContext = { document, records, scale, sheetRecord }
+  const schematicConnectionSegments = getSchematicConnectionSegments(
+    records.filter((record) =>
+      shouldRenderSchematicRecord(record, renderingContext),
+    ),
+  )
   return {
-    document,
+    ...renderingContext,
     elements: [],
     handledRecords: new Set(),
     options,
-    records,
-    scale,
+    schematicConnectionSegments,
     sheetDimensions,
-    sheetRecord,
   }
 }

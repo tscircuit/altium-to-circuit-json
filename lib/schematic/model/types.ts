@@ -1,4 +1,8 @@
-import type { AltiumPoint, AltiumRecord } from "altiumts"
+import type {
+  AltiumPoint,
+  AltiumRecord,
+  SchematicConnectionSegment,
+} from "altiumts"
 import type {
   AnyCircuitElement,
   SchematicPort,
@@ -11,6 +15,7 @@ export interface SemanticSchematicOptions {
   includeHidden?: boolean
   includeText?: boolean
   scale: number
+  schematicConnectionSegments: SchematicConnectionSegment[]
   schematicSheetId: string
 }
 

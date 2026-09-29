@@ -10,6 +10,7 @@ export function convertSchematicSemantics(
     includeHidden: context.options.includeHidden,
     includeText: context.options.includeText,
     scale: context.scale,
+    schematicConnectionSegments: context.schematicConnectionSegments,
     schematicSheetId: SCHEMATIC_SHEET_ID,
   })
   context.elements.push(...conversion.elements)

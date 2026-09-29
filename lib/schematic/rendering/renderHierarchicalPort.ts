@@ -1,9 +1,9 @@
-import type { AltiumRecord } from "altiumts"
+import { type AltiumRecord, getSchematicPortDirection } from "altiumts"
 import type { AnyCircuitElement, SchematicPath } from "circuit-json"
 import { SCHEMATIC_SHEET_ID, type SchematicContext } from "../document"
 import { getCoordinateOrFallback, getLocation, scalePoint } from "../geometry"
 import { altiumColorToCss, createDirectText, getFontSize } from "../text"
-import { getHierarchicalPortArrowEnds } from "./getHierarchicalPortArrowEnds"
+import { getHierarchicalPortGeometry } from "./getHierarchicalPortGeometry"
 import type { SymbolRenderOptions } from "./types"
 
 export function renderHierarchicalPort({
@@ -29,56 +29,17 @@ export function renderHierarchicalPort({
     getCoordinateOrFallback({ record, key: "HEIGHT", fallback: 10 }),
     4,
   )
-  const halfHeight = height / 2
-  const pointDepth = Math.min(width * 0.22, height)
-  const { pointAtEnd, pointAtStart } = getHierarchicalPortArrowEnds({
-    context,
+  const direction = getSchematicPortDirection({
     record,
+    segments: context.schematicConnectionSegments ?? [],
+    width,
   })
-  const points =
-    pointAtStart && pointAtEnd
-      ? [
-          { x: location.x, y: location.y },
-          { x: location.x + pointDepth, y: location.y + halfHeight },
-          {
-            x: location.x + width - pointDepth,
-            y: location.y + halfHeight,
-          },
-          { x: location.x + width, y: location.y },
-          {
-            x: location.x + width - pointDepth,
-            y: location.y - halfHeight,
-          },
-          { x: location.x + pointDepth, y: location.y - halfHeight },
-        ]
-      : pointAtStart
-        ? [
-            { x: location.x, y: location.y },
-            { x: location.x + pointDepth, y: location.y + halfHeight },
-            { x: location.x + width, y: location.y + halfHeight },
-            { x: location.x + width, y: location.y - halfHeight },
-            { x: location.x + pointDepth, y: location.y - halfHeight },
-          ]
-        : pointAtEnd
-          ? [
-              { x: location.x, y: location.y + halfHeight },
-              {
-                x: location.x + width - pointDepth,
-                y: location.y + halfHeight,
-              },
-              { x: location.x + width, y: location.y },
-              {
-                x: location.x + width - pointDepth,
-                y: location.y - halfHeight,
-              },
-              { x: location.x, y: location.y - halfHeight },
-            ]
-          : [
-              { x: location.x, y: location.y + halfHeight },
-              { x: location.x + width, y: location.y + halfHeight },
-              { x: location.x + width, y: location.y - halfHeight },
-              { x: location.x, y: location.y - halfHeight },
-            ]
+  const { points, textLocation } = getHierarchicalPortGeometry({
+    ...direction,
+    height,
+    location,
+    width,
+  })
   const elements: AnyCircuitElement[] = [
     {
       type: "schematic_path",
@@ -101,11 +62,11 @@ export function renderHierarchicalPort({
       createDirectText({
         id: `schematic_port_text_altium_${index}`,
         text: name,
-        location: { x: location.x + width / 2, y: location.y },
+        location: textLocation,
         fontSize: getFontSize(record, context),
         color: altiumColorToCss(record.getCaseInsensitive("TEXTCOLOR"), color),
         scale: context.scale,
-        ccwRotationDegrees: 0,
+        ccwRotationDegrees: direction.vertical ? 90 : 0,
         anchor: "center",
       }),
     )

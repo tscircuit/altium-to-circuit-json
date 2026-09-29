@@ -11,7 +11,6 @@ import {
   getOrCreateSourceNet,
   getPortConnectionGeometry,
   getRecordDirection,
-  getWireSegments,
 } from "../connectivity"
 import { getLocation, scalePoint } from "../geometry"
 import { isPowerNet } from "../identifiers"
@@ -40,8 +39,6 @@ export function convertNetLabels({
   options: SemanticSchematicOptions
   semanticNetGraph: SemanticNetGraph
 }): void {
-  const allWireSegments = getWireSegments(document.wires)
-
   for (const [recordIndex, record] of document.records.entries()) {
     if (!isElectricalLabelRecord(record)) continue
     if (record.getBoolean("ISHIDDEN") && options.includeHidden !== true) {
@@ -51,7 +48,7 @@ export function convertNetLabels({
     const name = getElectricalLabelName(record)
     const portConnection =
       record instanceof AltiumSchPortRecord
-        ? getPortConnectionGeometry(record, allWireSegments)
+        ? getPortConnectionGeometry(record, options.schematicConnectionSegments)
         : undefined
     const location = portConnection?.anchor ?? getLocation(record)
     if (!name || !location) continue
