@@ -19,7 +19,6 @@ import { createText } from "./createText"
 import { decodeMultilineText } from "./decodeMultilineText"
 import { getFontFamily } from "./getFontFamily"
 import { getFontSize } from "./getFontSize"
-import { removeBlankSchematicTextFrameLines } from "./removeBlankSchematicTextFrameLines"
 import { wrapSchematicText } from "./wrapSchematicText"
 
 export function renderTextRecord({
@@ -75,11 +74,10 @@ export function renderTextRecord({
             fontFamily,
           })
     const lineHeight = fontSize
-    const compactLines = removeBlankSchematicTextFrameLines(wrappedLines)
     const visibleLines =
       record.getBoolean("CLIPTORECT") === false
-        ? compactLines
-        : compactLines.slice(
+        ? wrappedLines
+        : wrappedLines.slice(
             0,
             Math.max(Math.ceil(availableHeight / lineHeight), 1),
           )
