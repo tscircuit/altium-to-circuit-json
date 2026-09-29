@@ -7,7 +7,7 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
+import { convertOwnedComponentBody } from "./convertOwnedComponentBody"
 import { convertOwnedSingleInputGateBody } from "./convertOwnedSingleInputGateBody"
 import { convertPinlessComponent } from "./convertPinlessComponent"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
@@ -69,6 +69,7 @@ export function convertComponent(
       pin,
       pinIndex,
       schematicComponentId: identity.schematicComponentId,
+      sheetRecord: context.sheetRecord,
       sourceComponentId: identity.sourceComponentId,
       visibleSymbolLabels,
     }),
@@ -88,11 +89,11 @@ export function convertComponent(
         { identity, records: visibleOwnedRecords, componentPorts },
         context,
       )
-  const ownedGateBody =
+  const ownedComponentBody =
     singleInputGateBody ??
     (symbolSelection
       ? undefined
-      : convertOwnedLogicGateBody(
+      : convertOwnedComponentBody(
           { identity, pins, records: visibleOwnedRecords, visibleSymbolLabels },
           context,
         ))
@@ -119,7 +120,7 @@ export function convertComponent(
           componentPorts,
           pins,
           includeNumericDesignators:
-            Boolean(ownedGateBody) && options.includeText !== false,
+            Boolean(ownedComponentBody) && options.includeText !== false,
         },
         context,
       )
@@ -132,12 +133,12 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
-    ...(ownedGateBody ?? []),
+    ...(ownedComponentBody ?? []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: !ownedGateBody,
+    is_box_with_pins: !ownedComponentBody,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -146,13 +147,13 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
-  if (!symbolSelection && !ownedGateBody && options.includeText !== false) {
-    addComponentFallbackText({
-      componentIndex,
-      designator: identity.designator,
-      displayText: identity.displayText,
-      elements,
-      schematicComponent,
-    })
-  }
+  if (symbolSelection || ownedComponentBody || options.includeText === false)
+    return
+  addComponentFallbackText({
+    componentIndex,
+    designator: identity.designator,
+    displayText: identity.displayText,
+    elements,
+    schematicComponent,
+  })
 }
