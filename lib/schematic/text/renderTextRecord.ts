@@ -1,7 +1,4 @@
-import {
-  type AltiumRecord,
-  resolveSchematicParameterReferenceWithContext,
-} from "altiumts"
+import type { AltiumRecord } from "altiumts"
 import type {
   AnyCircuitElement,
   SchematicRect,
@@ -22,6 +19,7 @@ import { createText } from "./createText"
 import { decodeMultilineText } from "./decodeMultilineText"
 import { getFontFamily } from "./getFontFamily"
 import { getFontSize } from "./getFontSize"
+import { resolveSchematicText } from "./resolveSchematicText"
 import { wrapSchematicText } from "./wrapSchematicText"
 
 export function renderTextRecord({
@@ -50,12 +48,12 @@ export function renderTextRecord({
       record.getDecoded("DESIGNATOR")
     const location = getLocation(record)
     if (!reference || !location) return []
-    const text =
-      resolveSchematicParameterReferenceWithContext({
-        document: context.document,
-        record,
-        reference,
-      }) ?? reference
+    const text = resolveSchematicText({
+      document: context.document,
+      options,
+      record,
+      reference,
+    })
     return [createText({ record, index, text, location, color, context })]
   }
 
