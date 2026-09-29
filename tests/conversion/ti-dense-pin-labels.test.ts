@@ -39,8 +39,8 @@ test("keeps dense TI HDMI pin labels legible", async () => {
     videoPins.every(
       (pin) =>
         pin.display_pin_label_font_size !== undefined &&
-        pin.display_pin_label_font_size < 0.1,
+        pin.display_pin_label_font_size < 0.15,
     ),
   ).toBe(true)
-  expect(videoPins[0]?.display_pin_label_font_size).toBeCloseTo(0.0854745, 6)
+  expect(videoPins[0]?.display_pin_label_font_size).toBeCloseTo(0.1424575, 6)
 })

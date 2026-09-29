@@ -1,4 +1,4 @@
-import type { AltiumSchDoc, AltiumSchPinRecord } from "altiumts"
+import type { AltiumRecord, AltiumSchDoc, AltiumSchPinRecord } from "altiumts"
 import type { SchematicPort, SourcePort } from "circuit-json"
 import {
   DIRECTION_BY_ORIENTATION,
@@ -8,10 +8,9 @@ import {
 import { getLocation, scaleLength, scalePoint } from "../geometry"
 import { uniqueStrings } from "../identifiers"
 import type { ConvertedPort, SemanticSchematicOptions } from "../model"
+import { getAltiumPinNameFontSize } from "./getAltiumPinNameFontSize"
 import { parseAltiumPinLabel } from "./parseAltiumPinLabel"
 import { parsePinNumber } from "./parsePinNumber"
-
-const ALTIUM_PIN_LABEL_FONT_SIZE = 6
 
 export function convertComponentPin({
   document,
@@ -19,6 +18,7 @@ export function convertComponentPin({
   pin,
   pinIndex,
   schematicComponentId,
+  sheetRecord,
   sourceComponentId,
   visibleSymbolLabels,
 }: {
@@ -27,6 +27,7 @@ export function convertComponentPin({
   pin: AltiumSchPinRecord
   pinIndex: number
   schematicComponentId: string
+  sheetRecord: AltiumRecord | undefined
   sourceComponentId: string
   visibleSymbolLabels: Set<string>
 }): ConvertedPort {
@@ -74,7 +75,7 @@ export function convertComponentPin({
       ? {
           display_pin_label: parsedPinLabel.displayText,
           display_pin_label_font_size: scaleLength(
-            ALTIUM_PIN_LABEL_FONT_SIZE,
+            getAltiumPinNameFontSize({ pin, sheetRecord }),
             options.scale,
           ),
           ...(parsedPinLabel.textParts
