@@ -1,10 +1,19 @@
 import type { AltiumRecord } from "altiumts"
-import type { SchematicContext } from "./types"
+import { isSchematicRecordOnSheet } from "./isSchematicRecordOnSheet"
+import type { SchematicConversionContext } from "./types"
 
 export function shouldRenderSchematicRecord(
   record: AltiumRecord,
-  context: SchematicContext,
+  context: SchematicConversionContext,
 ): boolean {
+  if (
+    !isSchematicRecordOnSheet({
+      record,
+      sheetDimensions: context.sheetDimensions,
+    })
+  ) {
+    return false
+  }
   let ownerPartId = record.getNumber("OWNERPARTID")
   let ownerPartDisplayMode = record.getNumber("OWNERPARTDISPLAYMODE")
   let current: AltiumRecord | undefined = record
