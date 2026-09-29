@@ -1,8 +1,4 @@
-import {
-  type AltiumSchComponentRecord,
-  AltiumSchLabelRecord,
-  AltiumSchPinRecord,
-} from "altiumts"
+import { type AltiumSchComponentRecord, AltiumSchPinRecord } from "altiumts"
 import type { SchematicComponent } from "circuit-json"
 import { getBoundsCenter, scaleLength, scalePoint } from "../geometry"
 import {
@@ -11,11 +7,13 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { createAlphanumericPinDesignatorText } from "./createAlphanumericPinDesignatorText"
-import { createPinClockSymbol } from "./createPinClockSymbol"
+import { convertOwnedLogicGateBody } from "./convertOwnedLogicGateBody"
+import { convertPinlessComponent } from "./convertPinlessComponent"
+import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
 import { getComponentIdentity } from "./getComponentIdentity"
+import { getVisibleSymbolLabels } from "./getVisibleSymbolLabels"
 import { isOwnedRecordVisible } from "./isOwnedRecordVisible"
 import { isPinHidden } from "./isPinHidden"
 import type { ComponentConversionContext } from "./types"
@@ -43,18 +41,6 @@ export function convertComponent(
       record instanceof AltiumSchPinRecord &&
       (!isPinHidden(record) || options.includeHidden === true),
   )
-  if (pins.length === 0) return
-  const visibleSymbolLabels = new Set(
-    visibleOwnedRecords
-      .filter(
-        (record): record is AltiumSchLabelRecord =>
-          record instanceof AltiumSchLabelRecord,
-      )
-      .flatMap((record) => {
-        const text = record.text?.trim().toUpperCase()
-        return text ? [text] : []
-      }),
-  )
   const identity = getComponentIdentity(
     { componentIndex, componentRecord, ownedRecords },
     context,
@@ -71,7 +57,14 @@ export function convertComponent(
       }),
     )
   }
-
+  if (pins.length === 0) {
+    convertPinlessComponent(
+      { identity, ownedRecords: visibleOwnedRecords },
+      context,
+    )
+    return
+  }
+  const visibleSymbolLabels = getVisibleSymbolLabels(visibleOwnedRecords)
   const componentPorts = pins.map((pin, pinIndex) =>
     convertComponentPin({
       document,
@@ -92,6 +85,13 @@ export function convertComponent(
     libraryReference: identity.libraryReference,
     ports: componentPorts,
   })
+  const ownedLogicGateBody = symbolSelection
+    ? undefined
+    : convertOwnedLogicGateBody(
+        { identity, pins, records: visibleOwnedRecords, visibleSymbolLabels },
+        context,
+      )
+  const hasOwnedLogicGateBody = ownedLogicGateBody !== undefined
   const center = scalePoint(getBoundsCenter(bodyBounds), options.scale)
   const size = symbolSelection
     ? { ...symbolSelection.symbol.size }
@@ -108,22 +108,13 @@ export function convertComponent(
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
   }
-  const pinEdgeElements = componentPorts.flatMap(
-    ({ isSchematicVisible, schematicPort }, pinIndex) => {
-      if (!isSchematicVisible) return []
-      const pin = pins[pinIndex]
-      if (!pin) return []
-      const edgeElementParameters = {
-        pin,
-        recordIndex: document.records.indexOf(pin),
-        scale: options.scale,
-        schematicPort,
-      }
-      return [
-        createAlphanumericPinDesignatorText(edgeElementParameters),
-        createPinClockSymbol(edgeElementParameters),
-      ].filter((element) => element !== undefined)
+  const pinEdgeElements = createComponentPinEdgeElements(
+    {
+      componentPorts,
+      includeNumericDesignators: hasOwnedLogicGateBody,
+      pins,
     },
+    context,
   )
   convertedPorts.push(...componentPorts)
   elements.push(
@@ -134,11 +125,12 @@ export function convertComponent(
       ],
     ),
     ...pinEdgeElements,
+    ...(ownedLogicGateBody ?? []),
   )
   const schematicComponent: SchematicComponent = {
     type: "schematic_component",
     center,
-    is_box_with_pins: true,
+    is_box_with_pins: !hasOwnedLogicGateBody,
     schematic_component_id: identity.schematicComponentId,
     schematic_sheet_id: options.schematicSheetId,
     size,
@@ -147,7 +139,11 @@ export function convertComponent(
     ...(symbolSelection ? { symbol_name: symbolSelection.name } : {}),
   }
   elements.push(schematicComponent)
-  if (!symbolSelection && options.includeText !== false) {
+  if (
+    !symbolSelection &&
+    !hasOwnedLogicGateBody &&
+    options.includeText !== false
+  ) {
     addComponentFallbackText({
       componentIndex,
       designator: identity.designator,
