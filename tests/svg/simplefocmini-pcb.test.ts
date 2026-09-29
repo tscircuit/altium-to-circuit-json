@@ -8,6 +8,7 @@ test(
     const { circuitJson, circuitJsonSvg, comparisonSvg } =
       await createOpenSourcePcbComparison({
         filename: "simplefocmini-2024-04-26.PcbDoc",
+        focusOnBoard: true,
         pcbName: "SimpleFOC Mini",
       })
 
