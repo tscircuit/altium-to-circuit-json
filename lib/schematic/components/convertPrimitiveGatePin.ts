@@ -43,6 +43,8 @@ export function convertPrimitiveGatePin(
     const parsedLabel = parseAltiumPinLabel(nameLabel.text)
     nameLabel.text = parsedLabel.displayText
     if (parsedLabel.textParts) nameLabel.text_parts = parsedLabel.textParts
+    nameLabel.font_size =
+      port.schematicPort.display_pin_label_font_size ?? nameLabel.font_size
   }
   const line = elements.find((element) => element.type === "schematic_line")
   if (line) {
