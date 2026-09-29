@@ -12,14 +12,17 @@ import {
   scalePoint,
 } from "../geometry"
 import { createDirectText } from "../text"
+import type { SymbolRenderOptions } from "./types"
 
 export function renderSheetEntry({
   context,
   index,
+  options,
   record,
 }: {
   context: SchematicContext
   index: number
+  options: SymbolRenderOptions
   record: AltiumRecord
 }): AnyCircuitElement[] {
   const sheetSymbol = context.document.getParent(record)
@@ -87,7 +90,7 @@ export function renderSheetEntry({
     } satisfies SchematicPath,
   ]
   const name = record.getDecoded("NAME")
-  if (!name) return elements
+  if (!name || options.includeText === false) return elements
   const fontId = Math.max(Math.round(record.getNumber("TEXTFONTID") ?? 1), 1)
   const fontSize = Math.max(
     Number(context.sheetRecord?.getCaseInsensitive(`SIZE${fontId}`) ?? 9),

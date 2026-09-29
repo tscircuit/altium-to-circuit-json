@@ -37,7 +37,9 @@ export function convertSchematicRecord(
   }
 
   if (kind === "15") return renderSheetSymbol({ context, index, record })
-  if (kind === "16") return renderSheetEntry({ context, index, record })
+  if (kind === "16") {
+    return renderSheetEntry({ context, index, options, record })
+  }
 
   const primitive = renderPrimitiveRecord({
     record,

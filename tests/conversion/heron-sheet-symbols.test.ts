@@ -10,6 +10,14 @@ test("HERON PAY-SSM preserves hierarchical sheet symbols", async () => {
     parseAltiumSchDoc(source),
     { centerOnSchematicSheet: false, schematicUnitScale: 0.01 },
   )
+  const circuitJsonWithoutText = convertAltiumSchDocToCircuitJson(
+    parseAltiumSchDoc(source),
+    {
+      centerOnSchematicSheet: false,
+      includeText: false,
+      schematicUnitScale: 0.01,
+    },
+  )
   const mcuBody = circuitJson.find(
     (element): element is SchematicRect =>
       element.type === "schematic_rect" &&
@@ -48,4 +56,18 @@ test("HERON PAY-SSM preserves hierarchical sheet symbols", async () => {
     "CAN_Transciever",
     "can-SN65HVD233.SchDoc",
   ])
+  expect(
+    circuitJsonWithoutText.some(
+      (element) =>
+        element.type === "schematic_text" &&
+        element.schematic_text_id.startsWith("schematic_sheet_entry_text_"),
+    ),
+  ).toBe(false)
+  expect(
+    circuitJsonWithoutText.some(
+      (element) =>
+        element.type === "schematic_path" &&
+        element.schematic_path_id === "schematic_sheet_entry_altium_72",
+    ),
+  ).toBe(true)
 })
