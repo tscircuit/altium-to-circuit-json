@@ -64,4 +64,22 @@ Value=G4
       text: "'.PCB Revision'/.PCB-Rev/.Rev",
     }),
   ).toBe("F3/G4/E2")
+  expect(
+    resolvePcbProjectSpecialStrings({
+      project: boundaryProject,
+      text: "'.PCB Revision 2'",
+    }),
+  ).toBe("'.PCB Revision 2'")
+  expect(
+    resolvePcbProjectSpecialStrings({
+      project: boundaryProject,
+      text: ".PCB Revision",
+    }),
+  ).toBe("F3")
+  expect(
+    resolvePcbProjectSpecialStrings({
+      project: boundaryProject,
+      text: ".PCB Revision 2",
+    }),
+  ).toBe(".PCB Revision 2")
 })
