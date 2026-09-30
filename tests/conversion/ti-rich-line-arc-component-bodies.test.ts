@@ -22,19 +22,35 @@ test("preserves rich TI transformer, optocoupler, and MOSFET bodies", async () =
   const transformer = findComponent(lm5155, "T1")
   expect(transformer.is_box_with_pins).toBe(false)
   expect(transformer.symbol_name).toBeUndefined()
-  expect(ownedElements(lm5155, transformer, "schematic_path")).toHaveLength(32)
+  expect(
+    ownedElements({
+      circuitJson: lm5155,
+      component: transformer,
+      type: "schematic_path",
+    }),
+  ).toHaveLength(32)
 
   const optocoupler = findComponent(lm5155, "U2")
   expect(optocoupler.is_box_with_pins).toBe(false)
   expect(optocoupler.symbol_name).toBeUndefined()
-  expect(ownedElements(lm5155, optocoupler, "schematic_path")).toHaveLength(10)
+  expect(
+    ownedElements({
+      circuitJson: lm5155,
+      component: optocoupler,
+      type: "schematic_path",
+    }),
+  ).toHaveLength(10)
 
   for (const name of ["Q2", "Q7"]) {
     const mosfet = findComponent(lm251772, name)
     expect(mosfet.is_box_with_pins).toBe(false)
     expect(mosfet.symbol_name).toBeUndefined()
     expect(
-      ownedElements(lm251772, mosfet, "schematic_circle").length,
+      ownedElements({
+        circuitJson: lm251772,
+        component: mosfet,
+        type: "schematic_circle",
+      }).length,
     ).toBeGreaterThan(0)
   }
 
@@ -67,11 +83,15 @@ function findComponent(
   return component
 }
 
-function ownedElements(
-  circuitJson: AnyCircuitElement[],
-  component: SchematicComponent,
-  type: AnyCircuitElement["type"],
-): AnyCircuitElement[] {
+function ownedElements({
+  circuitJson,
+  component,
+  type,
+}: {
+  circuitJson: AnyCircuitElement[]
+  component: SchematicComponent
+  type: AnyCircuitElement["type"]
+}): AnyCircuitElement[] {
   return circuitJson.filter(
     (element) =>
       element.type === type &&
