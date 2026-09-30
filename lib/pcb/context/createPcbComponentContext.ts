@@ -18,15 +18,21 @@ interface LogicalPcbPin {
 
 export function createPcbComponentContext({
   document,
+  includeComponents,
   includePorts,
   layerMap,
 }: {
   document: AltiumPcbDocument
+  includeComponents: boolean
   includePorts: boolean
   layerMap: PcbCopperLayerMap
 }): PcbComponentContext {
   const componentIndexByRecord = new Map(
-    document.components.map((component, index) => [component, index]),
+    document.components.flatMap((component, index) =>
+      includeComponents && component.position
+        ? [[component, index] as const]
+        : [],
+    ),
   )
   const recordIndexByRecord = new Map(
     document.records.map((record, index) => [record, index]),

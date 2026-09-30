@@ -1,13 +1,13 @@
 import type { AltiumRecord } from "altiumts"
+import type { PcbComponentContext } from "../model"
 import { BOARD_GRAPHICS_COMPONENT_ID } from "../model"
-import { getPcbComponentId } from "./getPcbComponentId"
 import type { PcbComponentId } from "./types"
 
 export function getPcbComponentIdForRecord(
   record: AltiumRecord,
+  componentContext: PcbComponentContext,
 ): PcbComponentId | typeof BOARD_GRAPHICS_COMPONENT_ID {
-  const componentIndex = record.getNumber("COMPONENT")
-  return componentIndex === undefined || componentIndex < 0
-    ? BOARD_GRAPHICS_COMPONENT_ID
-    : getPcbComponentId(componentIndex)
+  return (
+    componentContext.getPcbComponentId(record) ?? BOARD_GRAPHICS_COMPONENT_ID
+  )
 }
