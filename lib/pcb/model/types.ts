@@ -6,6 +6,7 @@ import type {
   SourceSimpleChip,
   SourceTrace,
 } from "circuit-json"
+import type { PcbComponentId } from "../identifiers"
 import type { PcbCopperLayerMap } from "../layers"
 
 export interface ConvertAltiumPcbDocOptions {
@@ -30,7 +31,7 @@ export interface PcbNetContext {
 export interface PcbComponentContext {
   sourceComponents: SourceSimpleChip[]
   sourcePorts: SourcePort[]
-  getPcbComponentId: (record: AltiumRecord) => string | undefined
+  getPcbComponentId: (record: AltiumRecord) => PcbComponentId | undefined
   getSourcePortId: (record: AltiumPadRecord) => string | undefined
 }
 

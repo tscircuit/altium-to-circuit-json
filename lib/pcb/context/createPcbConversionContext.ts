@@ -14,6 +14,7 @@ export function createPcbConversionContext({
   const layerMap = new PcbCopperLayerMap(document)
   const componentContext = createPcbComponentContext({
     document,
+    includeComponents: options.includeComponents !== false,
     includePorts: options.includePads !== false,
     layerMap,
   })

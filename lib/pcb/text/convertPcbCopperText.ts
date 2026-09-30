@@ -3,13 +3,16 @@ import type { PcbCopperText } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import { getPcbComponentIdForRecord } from "../identifiers"
 import type { PcbCopperLayerMap } from "../layers"
+import type { PcbComponentContext } from "../model"
 import { mapTextAnchor } from "./mapTextAnchor"
 
 export function convertPcbCopperText({
+  componentContext,
   layerMap,
   record,
   recordIndex,
 }: {
+  componentContext: PcbComponentContext
   layerMap: PcbCopperLayerMap
   record: AltiumTextRecord
   recordIndex: number
@@ -20,7 +23,7 @@ export function convertPcbCopperText({
   return {
     type: "pcb_copper_text",
     pcb_copper_text_id: `pcb_copper_text_altium_${recordIndex}`,
-    pcb_component_id: getPcbComponentIdForRecord(record),
+    pcb_component_id: getPcbComponentIdForRecord(record, componentContext),
     text: record.text,
     font: "tscircuit2024",
     font_size: milsToMillimeters(record.heightMils ?? 30),
