@@ -19,8 +19,9 @@ import { createText } from "./createText"
 import { decodeMultilineText } from "./decodeMultilineText"
 import { getFontFamily } from "./getFontFamily"
 import { getFontSize } from "./getFontSize"
+import { getTextFrameAnchor } from "./getTextFrameAnchor"
+import { getTextFrameLines } from "./getTextFrameLines"
 import { resolveSchematicText } from "./resolveSchematicText"
-import { wrapSchematicText } from "./wrapSchematicText"
 
 export function renderTextRecord({
   record,
@@ -78,26 +79,17 @@ export function renderTextRecord({
     const frameHeight = rectangle.maxY - rectangle.minY
     const availableWidth = Math.max(frameWidth - margin * 2, fontSize)
     const availableHeight = Math.max(frameHeight - margin * 2, fontSize)
-    const wrappedLines =
-      record.getBoolean("WORDWRAP") === false
-        ? text.split("\n")
-        : wrapSchematicText({
-            text,
-            maximumWidth: availableWidth,
-            fontSize,
-            fontFamily,
-          })
-    const lineHeight = fontSize
-    const visibleLines =
-      record.getBoolean("CLIPTORECT") === false
-        ? wrappedLines
-        : wrappedLines.slice(
-            0,
-            Math.max(Math.ceil(availableHeight / lineHeight), 1),
-          )
     const alignment = Number(record.getCaseInsensitive("ALIGNMENT") ?? 1)
-    const horizontalAnchor =
-      alignment === 2 ? "center" : alignment === 3 ? "right" : "left"
+    const horizontalAnchor = getTextFrameAnchor(alignment)
+    const visibleLines = getTextFrameLines({
+      record,
+      text,
+      availableWidth,
+      availableHeight,
+      fontSize,
+      fontFamily,
+      horizontalAnchor,
+    })
     const textX =
       horizontalAnchor === "center"
         ? (rectangle.minX + rectangle.maxX) / 2
@@ -115,7 +107,7 @@ export function renderTextRecord({
         text: line,
         location: {
           x: textX,
-          y: rectangle.maxY - margin - lineIndex * lineHeight,
+          y: rectangle.maxY - margin - lineIndex * fontSize,
         },
         fontSize,
         color: textColor,
