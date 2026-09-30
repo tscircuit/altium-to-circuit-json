@@ -9,6 +9,7 @@ import type {
 import type { PcbCopperLayerMap } from "../layers"
 
 export interface ConvertAltiumPcbDocOptions {
+  idPrefix?: string
   includeBoardOutline?: boolean
   includeComponents?: boolean
   includeCopperAreas?: boolean
