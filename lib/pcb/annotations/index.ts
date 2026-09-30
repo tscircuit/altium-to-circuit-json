@@ -1,5 +1,6 @@
-export * from "./convertPcbCircularKeepout"
+export * from "./convertPcbArcKeepout"
 export * from "./convertPcbDimension"
+export * from "./convertPcbDimensionElements"
 export * from "./convertPcbFabricationNotePath"
 export * from "./getDimensionText"
 export * from "./getMeasurement"

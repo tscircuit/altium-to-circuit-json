@@ -9,8 +9,8 @@ import {
   AltiumViaRecord,
 } from "altiumts"
 import {
-  convertPcbCircularKeepout,
-  convertPcbDimension,
+  convertPcbArcKeepout,
+  convertPcbDimensionElements,
   convertPcbFabricationNotePath,
   isExplodedPcbDimensionGraphic,
 } from "../annotations"
@@ -38,27 +38,26 @@ export function convertPcbRecords(context: PcbConversionContext): void {
   const { document, elements, layerMap, netContext, options } = context
   const routing = { layerMap, netContext }
   for (const [recordIndex, record] of document.records.entries()) {
-    if (
+    const isKeepoutArc =
       record instanceof AltiumArcRecord &&
-      isKeepoutLayer(record.layer) &&
-      options.includeKeepouts !== false
-    ) {
-      const keepout = convertPcbCircularKeepout({
-        layerMap,
-        record,
-        recordIndex,
-      })
-      if (keepout) elements.push(keepout)
+      (isKeepoutLayer(record.layer) || record.getBoolean("KEEPOUT") === true)
+    if (isKeepoutArc) {
+      if (options.includeKeepouts !== false) {
+        const keepout = convertPcbArcKeepout({
+          layerMap,
+          record,
+          recordIndex,
+        })
+        if (keepout) elements.push(keepout)
+      }
       continue
     }
 
     if (record instanceof AltiumDimensionRecord) {
       if (options.includeDimensions === false) continue
-      const dimension = convertPcbDimension({ record, recordIndex })
-      if (dimension) elements.push(dimension)
+      elements.push(...convertPcbDimensionElements({ record, recordIndex }))
       continue
     }
-
     if (
       options.includeDimensions !== false &&
       isExplodedPcbDimensionGraphic(document, record)
