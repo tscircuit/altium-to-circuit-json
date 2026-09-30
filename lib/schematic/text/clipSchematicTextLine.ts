@@ -1,6 +1,11 @@
-import { estimateSchematicTextWidth } from "./estimateSchematicTextWidth"
+import { estimateSchematicGlyphWidth } from "./estimateSchematicGlyphWidth"
 
 type HorizontalAnchor = "left" | "center" | "right"
+
+export interface ClippedSchematicTextLine {
+  text: string
+  horizontalOffset: number
+}
 
 export function clipSchematicTextLine({
   text,
@@ -14,45 +19,53 @@ export function clipSchematicTextLine({
   fontSize: number
   fontFamily: string
   horizontalAnchor: HorizontalAnchor
-}): string {
-  if (
-    estimateSchematicTextWidth({ text, fontSize, fontFamily }) <= maximumWidth
-  ) {
-    return text
-  }
-
+}): ClippedSchematicTextLine {
   const characters = [...text]
-  let minimumLength = 0
-  let maximumLength = characters.length
-  while (minimumLength < maximumLength) {
-    const candidateLength = Math.ceil((minimumLength + maximumLength) / 2)
-    const candidateStart =
-      horizontalAnchor === "right"
-        ? characters.length - candidateLength
-        : horizontalAnchor === "center"
-          ? Math.floor((characters.length - candidateLength) / 2)
-          : 0
-    const candidate = characters
-      .slice(candidateStart, candidateStart + candidateLength)
-      .join("")
-    if (
-      estimateSchematicTextWidth({
-        text: candidate,
-        fontSize,
-        fontFamily,
-      }) <= maximumWidth
-    ) {
-      minimumLength = candidateLength
-    } else {
-      maximumLength = candidateLength - 1
-    }
+  const cumulativeWidths = [0]
+  for (const character of characters) {
+    cumulativeWidths.push(
+      cumulativeWidths.at(-1)! +
+        estimateSchematicGlyphWidth({
+          character,
+          fontSize,
+          fontFamily,
+        }),
+    )
+  }
+  const fullWidth = cumulativeWidths.at(-1)!
+  if (fullWidth <= maximumWidth) return { text, horizontalOffset: 0 }
+
+  const visibleStart =
+    horizontalAnchor === "right"
+      ? fullWidth - maximumWidth
+      : horizontalAnchor === "center"
+        ? (fullWidth - maximumWidth) / 2
+        : 0
+  const visibleEnd = visibleStart + maximumWidth
+  let startIndex = 0
+  while (
+    startIndex < characters.length &&
+    cumulativeWidths[startIndex]! < visibleStart
+  ) {
+    startIndex += 1
+  }
+  let endIndex = startIndex
+  while (
+    endIndex < characters.length &&
+    cumulativeWidths[endIndex + 1]! <= visibleEnd
+  ) {
+    endIndex += 1
   }
 
-  const start =
-    horizontalAnchor === "right"
-      ? characters.length - minimumLength
-      : horizontalAnchor === "center"
-        ? Math.floor((characters.length - minimumLength) / 2)
-        : 0
-  return characters.slice(start, start + minimumLength).join("")
+  const clippedWidth =
+    cumulativeWidths[endIndex]! - cumulativeWidths[startIndex]!
+  const horizontalOffset =
+    horizontalAnchor === "center"
+      ? -fullWidth / 2 + cumulativeWidths[startIndex]! + clippedWidth / 2
+      : 0
+
+  return {
+    text: characters.slice(startIndex, endIndex).join(""),
+    horizontalOffset,
+  }
 }

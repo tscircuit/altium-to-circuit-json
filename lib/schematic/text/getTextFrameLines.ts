@@ -1,5 +1,8 @@
 import type { AltiumRecord } from "altiumts"
-import { clipSchematicTextLine } from "./clipSchematicTextLine"
+import {
+  clipSchematicTextLine,
+  type ClippedSchematicTextLine,
+} from "./clipSchematicTextLine"
 import { wrapSchematicText } from "./wrapSchematicText"
 
 export function getTextFrameLines({
@@ -18,7 +21,7 @@ export function getTextFrameLines({
   fontSize: number
   fontFamily: string
   horizontalAnchor: "left" | "center" | "right"
-}): string[] {
+}): ClippedSchematicTextLine[] {
   const lines =
     record.getBoolean("WORDWRAP") === false
       ? text.split("\n")
@@ -28,10 +31,12 @@ export function getTextFrameLines({
           fontSize,
           fontFamily,
         })
-  if (record.getBoolean("CLIPTORECT") === false) return lines
+  if (record.getBoolean("CLIPTORECT") === false) {
+    return lines.map((line) => ({ text: line, horizontalOffset: 0 }))
+  }
 
   return lines
-    .slice(0, Math.max(Math.ceil(availableHeight / fontSize), 1))
+    .slice(0, Math.max(Math.floor(availableHeight / fontSize), 0))
     .map((line) =>
       clipSchematicTextLine({
         text: line,

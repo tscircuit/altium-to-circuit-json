@@ -7,6 +7,7 @@ import {
   getRectangle,
 } from "../../lib/schematic/geometry"
 import {
+  clipSchematicTextLine,
   estimateSchematicTextWidth,
   getFontFamily,
   getFontSize,
@@ -52,4 +53,37 @@ test("clips a TI FAQ URL to its sheet 04 text frame", async () => {
       fontFamily: getFontFamily(frameRecord, context),
     }),
   ).toBeLessThanOrEqual(availableWidth)
+})
+
+test("center clipping preserves proportional glyph positions", () => {
+  const clipped = clipSchematicTextLine({
+    text: "WWWWiiii",
+    maximumWidth: 25,
+    fontSize: 10,
+    fontFamily: "Arial",
+    horizontalAnchor: "center",
+  })
+
+  expect(clipped.text).toBe("WW")
+  expect(clipped.horizontalOffset).toBeCloseTo(3)
+})
+
+test("vertical clipping emits only complete text-frame lines", () => {
+  const document = parseAltiumSchDoc(
+    [
+      "|RECORD=31|CUSTOMX=100|CUSTOMY=100|SIZE1=10|FONTNAME1=Arial",
+      "|RECORD=28|LOCATION.X=0|LOCATION.Y=0|CORNER.X=100|CORNER.Y=12|FONTID=1|TEXT=first~1second|WORDWRAP=F|CLIPTORECT=T",
+    ].join("\n"),
+  )
+  const circuitJson = convertAltiumSchDocToCircuitJson(document, {
+    centerOnSchematicSheet: false,
+    schematicUnitScale: 1,
+  })
+  const frameLines = circuitJson.filter(
+    (element): element is SchematicText =>
+      element.type === "schematic_text" &&
+      element.schematic_text_id.startsWith("schematic_text_frame_line_"),
+  )
+
+  expect(frameLines.map((line) => line.text)).toEqual(["first"])
 })

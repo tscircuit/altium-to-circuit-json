@@ -77,8 +77,8 @@ export function renderTextRecord({
     )
     const frameWidth = rectangle.maxX - rectangle.minX
     const frameHeight = rectangle.maxY - rectangle.minY
-    const availableWidth = Math.max(frameWidth - margin * 2, fontSize)
-    const availableHeight = Math.max(frameHeight - margin * 2, fontSize)
+    const availableWidth = Math.max(frameWidth - margin * 2, 0)
+    const availableHeight = Math.max(frameHeight - margin * 2, 0)
     const alignment = Number(record.getCaseInsensitive("ALIGNMENT") ?? 1)
     const horizontalAnchor = getTextFrameAnchor(alignment)
     const visibleLines = getTextFrameLines({
@@ -104,9 +104,9 @@ export function renderTextRecord({
     const elements: AnyCircuitElement[] = visibleLines.map((line, lineIndex) =>
       createDirectText({
         id: `schematic_text_frame_line_altium_${index}_${lineIndex}`,
-        text: line,
+        text: line.text,
         location: {
-          x: textX,
+          x: textX + line.horizontalOffset,
           y: rectangle.maxY - margin - lineIndex * fontSize,
         },
         fontSize,
