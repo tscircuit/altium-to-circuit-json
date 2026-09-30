@@ -4,6 +4,7 @@ import type { ConvertedPort } from "../model"
 import { convertOwnedComponentRecords } from "./convertOwnedComponentRecords"
 import { convertPrimitiveGatePin } from "./convertPrimitiveGatePin"
 import { hasTriangularLineBody } from "./hasTriangularLineBody"
+import { normalizeLogicGatePinName } from "./normalizeLogicGatePinName"
 import type { ComponentConversionContext, ComponentIdentity } from "./types"
 
 export function convertOwnedSingleInputGateBody(
@@ -19,7 +20,7 @@ export function convertOwnedSingleInputGateBody(
   context: ComponentConversionContext,
 ): AnyCircuitElement[] | undefined {
   const pinNames = componentPorts.map((port) =>
-    port.sourcePort.name?.trim().toUpperCase(),
+    normalizeLogicGatePinName(port.sourcePort.name),
   )
   if (
     !pinNames.includes("A") ||
