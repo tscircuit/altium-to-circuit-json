@@ -14,6 +14,7 @@ import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumPcbDocToCircuitJson } from "../../lib"
 import { getPreferredPcbBoardOutline } from "../../lib/pcb/board/getPreferredPcbBoardOutline"
 import { milsToMillimeters } from "../../lib/pcb/geometry"
+import { hasCopperAt } from "../helpers/hasCopperAt"
 import { readReferenceText } from "../helpers/read-reference"
 import { stackAltiumAndCircuitJsonSvgs } from "../helpers/stack-svg-comparison"
 
@@ -50,16 +51,12 @@ test("CH582 PCB polygon cutouts", async () => {
     .filter(
       (element): element is PcbCopperPour => element.type === "pcb_copper_pour",
     )
-    .find(
-      (pour) => pour.pcb_copper_pour_id === "pcb_copper_pour_altium_polygon_0",
-    )
+    .find((pour) => pour.layer === "bottom" && pour.shape === "brep")
   expect(bottomPolygon?.shape).toBe("brep")
   if (bottomPolygon?.shape !== "brep") {
     throw new Error("CH582 bottom polygon did not contain its cutouts")
   }
-  expect(bottomPolygon.brep_shape.inner_rings).toHaveLength(
-    bottomCutouts.length,
-  )
+  expect(bottomPolygon.brep_shape.inner_rings).toHaveLength(1)
   const topPolygon = circuitJson
     .filter(
       (element): element is PcbCopperPour => element.type === "pcb_copper_pour",
@@ -76,7 +73,20 @@ test("CH582 PCB polygon cutouts", async () => {
       region.layer === "TOP",
   )
   expect(topCutouts).toHaveLength(2)
-  expect(topPolygon.brep_shape.inner_rings).toHaveLength(topCutouts.length)
+  expect(topPolygon.brep_shape.inner_rings).toHaveLength(1)
+  for (const layer of ["top", "bottom"] as const) {
+    const pours = circuitJson.filter(
+      (element): element is PcbCopperPour =>
+        element.type === "pcb_copper_pour" && element.layer === layer,
+    )
+    // Both saved cutouts cover this point on each copper layer.
+    expect(
+      hasCopperAt(pours, {
+        x: milsToMillimeters(2430),
+        y: milsToMillimeters(3450),
+      }),
+    ).toBe(false)
+  }
 
   const boardBounds = getAltiumBounds([
     ...getPreferredPcbBoardOutline(document),
