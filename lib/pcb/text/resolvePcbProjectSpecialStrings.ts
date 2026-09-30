@@ -2,9 +2,6 @@ import type { AltiumPrjPcb } from "altiumts"
 import { getProjectTextReplacements } from "./getProjectTextReplacements"
 import { replaceMatchingSpecialString } from "./replaceMatchingSpecialString"
 
-const QUOTED_SPECIAL_STRING = /'\.([A-Za-z][A-Za-z0-9_]*)'/gu
-const SPECIAL_STRING = /\.([A-Za-z][A-Za-z0-9_]*)/gu
-
 export function resolvePcbProjectSpecialStrings({
   project,
   text,
@@ -14,14 +11,19 @@ export function resolvePcbProjectSpecialStrings({
 }): string {
   if (!project || !text.includes(".")) return text
   let resolvedText = text
-  for (const replacement of getProjectTextReplacements(project)) {
+  const replacements = getProjectTextReplacements(project).sort(
+    (first, second) => second.name.length - first.name.length,
+  )
+  for (const replacement of replacements) {
     resolvedText = replaceMatchingSpecialString({
-      expression: QUOTED_SPECIAL_STRING,
+      isQuoted: false,
       replacement,
       text: resolvedText,
     })
+  }
+  for (const replacement of replacements) {
     resolvedText = replaceMatchingSpecialString({
-      expression: SPECIAL_STRING,
+      isQuoted: true,
       replacement,
       text: resolvedText,
     })

@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { parseAltiumPrjPcb } from "altiumts"
 import type { PcbSilkscreenText } from "circuit-json"
 import { convertAltiumToCircuitJson } from "../../lib"
+import { resolvePcbProjectSpecialStrings } from "../../lib/pcb/text"
 import { TI_POWER_REFERENCE_PCB_FILENAMES } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
 
@@ -36,4 +37,31 @@ test("TI PMP22712 resolves PCB project special strings", async () => {
         /\.PRJ_Number|\.PCB_Rev/u.test(element.text),
     ),
   ).toBe(false)
+})
+
+test("PCB project special strings respect token boundaries and parameter names", () => {
+  const boundaryProject = parseAltiumPrjPcb(`
+[Parameter1]
+Name=Rev
+Value=E2
+[Parameter2]
+Name=PCB Revision
+Value=F3
+[Parameter3]
+Name=PCB-Rev
+Value=G4
+`)
+
+  expect(
+    resolvePcbProjectSpecialStrings({
+      project: boundaryProject,
+      text: "hardware.Rev",
+    }),
+  ).toBe("hardware.Rev")
+  expect(
+    resolvePcbProjectSpecialStrings({
+      project: boundaryProject,
+      text: "'.PCB Revision'/.PCB-Rev/.Rev",
+    }),
+  ).toBe("F3/G4/E2")
 })
