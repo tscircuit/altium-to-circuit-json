@@ -1,6 +1,5 @@
+import { doesLineIntersectLine } from "@tscircuit/math-utils"
 import type { AltiumPcbContour } from "altiumts"
-import { getCrossProduct } from "./getCrossProduct"
-import { isPointOnSegment } from "./isPointOnSegment"
 
 export function isContourInsideContour({
   innerContour,
@@ -29,6 +28,17 @@ export function isContourInsideContour({
     ? outerContour.points.slice(0, -1)
     : outerContour.points
   if (innerPoints.length < 3 || outerPoints.length < 3) return false
+  // Allow for rounding when fractional-mil coordinates meet at a boundary.
+  const toleranceMils =
+    8 *
+    Number.EPSILON *
+    Math.max(
+      1,
+      Math.abs(outerBounds.minX),
+      Math.abs(outerBounds.maxX),
+      Math.abs(outerBounds.minY),
+      Math.abs(outerBounds.maxY),
+    )
 
   for (const point of innerPoints) {
     let isInside = false
@@ -36,7 +46,6 @@ export function isContourInsideContour({
       const start = outerPoints[index]
       const end = outerPoints[(index + 1) % outerPoints.length]
       if (!start || !end) continue
-      if (isPointOnSegment({ start, end, point })) return false
       if (
         start.y > point.y !== end.y > point.y &&
         point.x <
@@ -57,33 +66,9 @@ export function isContourInsideContour({
       const outerStart = outerPoints[outerIndex]
       const outerEnd = outerPoints[(outerIndex + 1) % outerPoints.length]
       if (!outerStart || !outerEnd) continue
-      const innerStartSide = getCrossProduct({
-        start: outerStart,
-        end: outerEnd,
-        point: innerStart,
-      })
-      const innerEndSide = getCrossProduct({
-        start: outerStart,
-        end: outerEnd,
-        point: innerEnd,
-      })
-      const outerStartSide = getCrossProduct({
-        start: innerStart,
-        end: innerEnd,
-        point: outerStart,
-      })
-      const outerEndSide = getCrossProduct({
-        start: innerStart,
-        end: innerEnd,
-        point: outerEnd,
-      })
       if (
-        (innerStartSide * innerEndSide < 0 &&
-          outerStartSide * outerEndSide < 0) ||
-        isPointOnSegment({
-          start: innerStart,
-          end: innerEnd,
-          point: outerStart,
+        doesLineIntersectLine([innerStart, innerEnd], [outerStart, outerEnd], {
+          lineThickness: toleranceMils,
         })
       ) {
         return false
