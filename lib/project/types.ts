@@ -1,5 +1,10 @@
 import type { AltiumPcbDocument, AltiumSchDoc } from "altiumts"
-import type { AnyCircuitElement } from "circuit-json"
+import type {
+  AnyCircuitElement,
+  SourceNet,
+  SourcePort,
+  SourceTrace,
+} from "circuit-json"
 import type { ConvertAltiumSchDocOptions } from "../api/types"
 import type { ConvertAltiumPcbDocOptions } from "../pcb/model"
 
@@ -22,4 +27,20 @@ export interface AltiumProjectConverterContext {
   elements: AnyCircuitElement[]
   pcbElements: AnyCircuitElement[]
   schematicElements: AnyCircuitElement[]
+}
+
+export type ReconciledSourceComponent = Extract<
+  AnyCircuitElement,
+  { type: "source_component" }
+>
+
+export type ReconciledSourceElement =
+  | ReconciledSourceComponent
+  | SourceNet
+  | SourcePort
+  | SourceTrace
+
+export interface SourceTraceConnectivityGroup {
+  connectivityTokens: Set<string>
+  traces: SourceTrace[]
 }
