@@ -15,22 +15,23 @@ export function resolvePcbTextSpecialStrings({
   project?: AltiumPrjPcb
   text: string
 }): string {
-  const projectResolvedText = resolvePcbProjectSpecialStrings({ project, text })
-  if (!projectResolvedText.toLowerCase().includes(".layer_name")) {
-    return projectResolvedText
+  if (!text.toLowerCase().includes(".layer_name")) {
+    return resolvePcbProjectSpecialStrings({ project, text })
   }
   const layerDisplayName =
     layerMap.getDisplayName(layer) ?? getAltiumPcbLayerDisplayName(layer)
-  if (!layerDisplayName) return projectResolvedText
+  if (!layerDisplayName)
+    return resolvePcbProjectSpecialStrings({ project, text })
 
   const replacement = { name: "Layer_Name", text: layerDisplayName }
-  return replaceMatchingSpecialString({
+  const layerResolvedText = replaceMatchingSpecialString({
     isQuoted: true,
     replacement,
     text: replaceMatchingSpecialString({
       isQuoted: false,
       replacement,
-      text: projectResolvedText,
+      text,
     }),
   })
+  return resolvePcbProjectSpecialStrings({ project, text: layerResolvedText })
 }
