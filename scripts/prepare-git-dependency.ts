@@ -45,7 +45,7 @@ try {
   })
   await runCommand(["bun", "install", "--ignore-scripts"], buildDirectory)
   await runCommand(
-    ["bun", "run", "prepare"],
+    ["bun", "run", "build"],
     join(buildDirectory, "node_modules", "altiumts"),
   )
   await runCommand(["bun", "run", "build"], buildDirectory)
