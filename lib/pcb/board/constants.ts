@@ -6,3 +6,5 @@ export const MAX_PLACEMENT_OVERHANG_MILS = 100
 
 // Avoid replacing a valid declared outline for a marginally smaller keepout.
 export const MIN_STALE_OUTLINE_AREA_RATIO = 1.25
+
+export const DEFAULT_BOARD_THICKNESS_MM = 1.6
