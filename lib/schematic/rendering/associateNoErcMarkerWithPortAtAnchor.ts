@@ -1,35 +1,33 @@
 import type { AltiumPoint } from "altiumts"
-import type {
-  AnyCircuitElement,
-  SchematicLine,
-  SchematicPort,
-} from "circuit-json"
-import { pointsEqual } from "../geometry"
+import type { AnyCircuitElement, SchematicLine } from "circuit-json"
+import { pointsEqual, scalePoint } from "../geometry"
+import type { ConvertedPort } from "../model"
 
 export function associateNoErcMarkerWithPortAtAnchor({
-  circuitJson,
+  convertedPorts,
   markerAnchor,
   markerElements,
+  schematicUnitScale,
 }: {
-  circuitJson: AnyCircuitElement[]
+  convertedPorts: ConvertedPort[]
   markerAnchor: AltiumPoint
   markerElements: AnyCircuitElement[]
+  schematicUnitScale: number
 }): AnyCircuitElement[] {
   const markerLine = markerElements.find(
     (element): element is SchematicLine => element.type === "schematic_line",
   )
   if (!markerLine) return markerElements
 
-  const matchingPort = circuitJson.find(
-    (element): element is SchematicPort =>
-      element.type === "schematic_port" &&
-      element.schematic_component_id !== undefined &&
-      element.schematic_sheet_id === markerLine.schematic_sheet_id &&
-      pointsEqual(element.center, markerAnchor),
+  const matchingPort = convertedPorts.find(
+    ({ point, schematicPort }) =>
+      schematicPort.schematic_sheet_id === markerLine.schematic_sheet_id &&
+      pointsEqual(scalePoint(point, schematicUnitScale), markerAnchor),
   )
-  if (!matchingPort) return markerElements
+  const schematicComponentId =
+    matchingPort?.schematicPort.schematic_component_id
+  if (!schematicComponentId) return markerElements
 
-  const schematicComponentId = matchingPort.schematic_component_id
   return markerElements.map((element) =>
     element.type === "schematic_line"
       ? { ...element, schematic_component_id: schematicComponentId }

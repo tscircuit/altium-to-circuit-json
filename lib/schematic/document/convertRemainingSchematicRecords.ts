@@ -19,9 +19,10 @@ export function convertRemainingSchematicRecords(
     context.elements.push(
       ...(noErcMarkerLocation
         ? associateNoErcMarkerWithPortAtAnchor({
-            circuitJson: context.elements,
+            convertedPorts: context.convertedPorts,
             markerAnchor: scalePoint(noErcMarkerLocation, context.scale),
             markerElements: convertedElements,
+            schematicUnitScale: context.scale,
           })
         : convertedElements),
     )

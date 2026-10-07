@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
-import type { AnyCircuitElement, SchematicLine } from "circuit-json"
+import type { SchematicLine } from "circuit-json"
 import { associateNoErcMarkerWithPortAtAnchor } from "../../lib/schematic/rendering/associateNoErcMarkerWithPortAtAnchor"
+import { createTestConvertedPort } from "../helpers/create-test-converted-port"
 
 test("does not assign a no-ERC marker to a port on another sheet", () => {
   const markerElements = [
@@ -16,22 +17,21 @@ test("does not assign a no-ERC marker to a port on another sheet", () => {
       is_dashed: false,
     } satisfies SchematicLine,
   ]
-  const circuitJson = [
-    {
-      type: "schematic_port",
-      schematic_port_id: "schematic_port_other_sheet",
-      source_port_id: "source_port_other_sheet",
-      schematic_component_id: "schematic_component_other_sheet",
-      schematic_sheet_id: "schematic_sheet_b",
-      center: { x: 0, y: 0 },
-    },
-  ] satisfies AnyCircuitElement[]
+  const convertedPorts = [
+    createTestConvertedPort({
+      altiumElectricalTerminal: { x: 0, y: 0 },
+      renderedPortCenter: { x: 0, y: 0 },
+      schematicComponentId: "schematic_component_other_sheet",
+      schematicSheetId: "schematic_sheet_b",
+    }),
+  ]
 
   expect(
     associateNoErcMarkerWithPortAtAnchor({
-      circuitJson,
+      convertedPorts,
       markerAnchor: { x: 0, y: 0 },
       markerElements,
+      schematicUnitScale: 1,
     }),
   ).toEqual(markerElements)
 })

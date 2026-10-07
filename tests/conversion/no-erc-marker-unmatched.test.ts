@@ -19,9 +19,10 @@ test("keeps an unmatched no-ERC marker unowned", () => {
 
   expect(
     associateNoErcMarkerWithPortAtAnchor({
-      circuitJson: [],
+      convertedPorts: [],
       markerAnchor: { x: 0, y: 0 },
       markerElements,
+      schematicUnitScale: 1,
     }),
   ).toEqual(markerElements)
 })
