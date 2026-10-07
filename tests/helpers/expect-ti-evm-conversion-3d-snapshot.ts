@@ -108,11 +108,12 @@ async function expectPngSnapshot({
     process.env.BUN_UPDATE_SNAPSHOTS === "1" ||
     process.env.BUN_FORCE_UPDATE_SNAPSHOTS === "1"
 
-  if (shouldUpdate || !(await Bun.file(snapshotPath).exists())) {
+  if (shouldUpdate) {
     await mkdir(dirname(snapshotPath), { recursive: true })
     await writeFile(snapshotPath, renderedPng)
   }
 
+  expect(await Bun.file(snapshotPath).exists()).toBe(true)
   expect(renderedPng).toEqual(new Uint8Array(await readFile(snapshotPath)))
 }
 
