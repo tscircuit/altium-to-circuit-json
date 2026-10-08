@@ -4,7 +4,9 @@ import { stackSvgsHorizontally } from "stack-svgs"
 const NOT_EMITTED = "not emitted"
 
 function formatMillimeters(measurement: number | undefined): string {
-  return measurement === undefined ? NOT_EMITTED : `${measurement} mm`
+  return measurement === undefined
+    ? NOT_EMITTED
+    : `${Number(measurement.toFixed(6))} mm`
 }
 
 function formatBoolean(flag: boolean | undefined): string {
@@ -12,14 +14,16 @@ function formatBoolean(flag: boolean | undefined): string {
 }
 
 function getSourceNetTraceWidth(sourceNets: SourceNet[]): number | undefined {
-  const trace_widths = [
+  const traceWidthsMillimeters = [
     ...new Set(
       sourceNets.flatMap(({ trace_width }) =>
         trace_width === undefined ? [] : [trace_width],
       ),
     ),
   ]
-  return trace_widths.length === 1 ? trace_widths[0] : undefined
+  return traceWidthsMillimeters.length === 1
+    ? traceWidthsMillimeters[0]
+    : undefined
 }
 
 export function createRoutingConstraintsComparisonSvg({
