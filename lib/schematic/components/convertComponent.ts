@@ -7,10 +7,10 @@ import {
 } from "../symbols"
 import { addComponentFallbackText } from "./addComponentFallbackText"
 import { convertComponentPin } from "./convertComponentPin"
-import { convertMarkedCapacitorBody } from "./convertMarkedCapacitorBody"
 import { convertOwnedComponentBody } from "./convertOwnedComponentBody"
 import { convertOwnedSingleInputGateBody } from "./convertOwnedSingleInputGateBody"
 import { convertPinlessComponent } from "./convertPinlessComponent"
+import { convertSourceComponentBody } from "./convertSourceComponentBody"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
@@ -84,11 +84,11 @@ export function convertComponent(
     ...identity,
     ports: componentPorts,
   })
-  const polarizedCapacitorBody = convertMarkedCapacitorBody(
+  const sourceComponentBody = convertSourceComponentBody(
     { identity, records: visibleOwnedRecords, symbolSelection },
     context,
   )
-  if (polarizedCapacitorBody) symbolSelection = undefined
+  if (sourceComponentBody) symbolSelection = undefined
   const singleInputGateBody = symbolSelection
     ? undefined
     : convertOwnedSingleInputGateBody(
@@ -96,7 +96,7 @@ export function convertComponent(
         context,
       )
   const ownedComponentBody =
-    polarizedCapacitorBody ??
+    sourceComponentBody ??
     singleInputGateBody ??
     (symbolSelection
       ? undefined
