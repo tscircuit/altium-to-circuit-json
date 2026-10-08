@@ -112,7 +112,24 @@ export const expectTiEvmEmbeddedCadModelImport = async ({
     const layer = getEmbeddedModelLayer(placement)
     const modelPosition = placement.body.modelPosition
     if (!modelPosition) throw new Error("Embedded model has no position")
-    const expectedPosition = toMillimeterPoint(modelPosition)
+    const modelPositionMillimeters = toMillimeterPoint(modelPosition)
+    const componentPosition = document.getComponentForRecord(
+      placement.body,
+    )?.position
+    const componentPositionMillimeters = componentPosition
+      ? toMillimeterPoint(componentPosition)
+      : undefined
+    const distanceFromComponent = componentPositionMillimeters
+      ? Math.hypot(
+          modelPositionMillimeters.x - componentPositionMillimeters.x,
+          modelPositionMillimeters.y - componentPositionMillimeters.y,
+        )
+      : 0
+    const boardDiagonal = Math.hypot(pcbBoard.width ?? 0, pcbBoard.height ?? 0)
+    const expectedPosition =
+      componentPositionMillimeters && distanceFromComponent > boardDiagonal
+        ? componentPositionMillimeters
+        : modelPositionMillimeters
     const modelZOffsetMillimeters =
       placement.body.getAltiumMeasurement("MODEL.3D.DZ")?.toMillimeters() ?? 0
     const boardSurfaceZ = pcbBoard.thickness / 2

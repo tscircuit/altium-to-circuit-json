@@ -1,8 +1,8 @@
 import { AltiumBinaryPcbDoc, AltiumComponentBodyRecord } from "altiumts"
 import type { CadComponent, PcbBoard } from "circuit-json"
-import { toMillimeterPoint } from "../geometry"
 import type { PcbConversionContext } from "../model"
 import { getBoardFrameModelCcwRotationDegrees } from "./getBoardFrameModelCcwRotationDegrees"
+import { getCadModelBoardPosition } from "./getCadModelBoardPosition"
 import { getCadModelLayer } from "./getCadModelLayer"
 
 const DEFAULT_PCB_THICKNESS_MM = 1.6
@@ -20,9 +20,8 @@ export function createPcbCadModels(
 
   return document.componentBodies.flatMap((body, bodyIndex) => {
     if (!(body instanceof AltiumComponentBodyRecord)) return []
-    const modelPosition = body.modelPosition
     const componentIndex = body.componentIndex
-    if (!modelPosition || componentIndex === undefined) return []
+    if (componentIndex === undefined) return []
 
     const embeddedModel = document.getEmbeddedModelForComponentBody(body)
     if (!embeddedModel) return []
@@ -32,6 +31,12 @@ export function createPcbCadModels(
     const pcbComponentId = context.componentContext.getPcbComponentId(body)
     const component = document.getComponentForRecord(body)
     if (!pcbComponentId || !component) return []
+    const modelPosition = getCadModelBoardPosition({
+      body,
+      componentPosition: component.position,
+      pcbBoard,
+    })
+    if (!modelPosition) return []
 
     const layer = getCadModelLayer({ body, componentSide: component.side })
     const modelZOffsetMillimeters =
@@ -48,7 +53,7 @@ export function createPcbCadModels(
         cad_component_id: `cad_component_altium_${bodyIndex}`,
         pcb_component_id: pcbComponentId,
         source_component_id: `source_component_altium_${componentIndex}`,
-        position: { ...toMillimeterPoint(modelPosition), z: positionZ },
+        position: { ...modelPosition, z: positionZ },
         rotation: getBoardFrameModelCcwRotationDegrees({ body, layer }),
         layer,
         model_step_url: modelStepUrl,
