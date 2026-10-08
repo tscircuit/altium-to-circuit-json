@@ -126,10 +126,16 @@ export const expectTiEvmEmbeddedCadModelImport = async ({
         )
       : 0
     const boardDiagonal = Math.hypot(pcbBoard.width ?? 0, pcbBoard.height ?? 0)
-    const expectedPosition =
-      componentPositionMillimeters && distanceFromComponent > boardDiagonal
-        ? componentPositionMillimeters
-        : modelPositionMillimeters
+    let expectedPosition = modelPositionMillimeters
+    let expectedModelOriginPosition = { x: 0, y: 0, z: 0 }
+    if (componentPositionMillimeters && distanceFromComponent > boardDiagonal) {
+      expectedPosition = componentPositionMillimeters
+      expectedModelOriginPosition = {
+        x: modelPositionMillimeters.x - componentPositionMillimeters.x,
+        y: modelPositionMillimeters.y - componentPositionMillimeters.y,
+        z: 0,
+      }
+    }
     const modelZOffsetMillimeters =
       placement.body.getAltiumMeasurement("MODEL.3D.DZ")?.toMillimeters() ?? 0
     const boardSurfaceZ = pcbBoard.thickness / 2
@@ -163,7 +169,9 @@ export const expectTiEvmEmbeddedCadModelImport = async ({
     })
     expect(cadComponent.model_unit_to_mm_scale_factor).toBe(1)
     expect(cadComponent.model_board_normal_direction).toBe("z+")
-    expect(cadComponent.model_origin_position).toEqual({ x: 0, y: 0, z: 0 })
+    expect(cadComponent.model_origin_position).toEqual(
+      expectedModelOriginPosition,
+    )
   }
 
   await expectTiEvmConversion3dSnapshot({

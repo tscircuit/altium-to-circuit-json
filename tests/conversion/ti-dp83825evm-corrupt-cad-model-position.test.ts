@@ -7,7 +7,7 @@ import { readReferenceBytes } from "../helpers/read-reference"
 
 const PCB_FILENAME = "ti-dp83825evm.PcbDoc"
 
-test("uses the component position for a corrupt Altium CAD model anchor", async () => {
+test("preserves the global STEP origin for DP83825EVM J9", async () => {
   const document = parseAltiumBinaryPcbDoc(
     await readReferenceBytes(PCB_FILENAME),
   )
@@ -39,11 +39,20 @@ test("uses the component position for a corrupt Altium CAD model anchor", async 
   )
   const rawModelPosition = body.modelPosition
 
-  expect(rawModelPosition).toBeDefined()
-  expect(rawModelPosition && toMillimeterPoint(rawModelPosition)).toEqual({
+  if (!rawModelPosition || !cadComponent || !pcbComponent) {
+    throw new Error("DP83825EVM J9 CAD placement is incomplete")
+  }
+  const rawModelPositionMillimeters = toMillimeterPoint(rawModelPosition)
+  expect(rawModelPositionMillimeters).toEqual({
     x: 341.21551772,
     y: 445.19678804,
   })
-  expect(cadComponent?.position.x).toBeCloseTo(pcbComponent?.center.x ?? 0, 8)
-  expect(cadComponent?.position.y).toBeCloseTo(pcbComponent?.center.y ?? 0, 8)
+  expect(cadComponent.position.x).toBeCloseTo(pcbComponent.center.x, 8)
+  expect(cadComponent.position.y).toBeCloseTo(pcbComponent.center.y, 8)
+  expect(
+    cadComponent.position.x + (cadComponent.model_origin_position?.x ?? 0),
+  ).toBeCloseTo(rawModelPositionMillimeters.x, 8)
+  expect(
+    cadComponent.position.y + (cadComponent.model_origin_position?.y ?? 0),
+  ).toBeCloseTo(rawModelPositionMillimeters.y, 8)
 })

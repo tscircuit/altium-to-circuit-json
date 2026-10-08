@@ -2,7 +2,7 @@ import { AltiumBinaryPcbDoc, AltiumComponentBodyRecord } from "altiumts"
 import type { CadComponent, PcbBoard } from "circuit-json"
 import type { PcbConversionContext } from "../model"
 import { getBoardFrameModelCcwRotationDegrees } from "./getBoardFrameModelCcwRotationDegrees"
-import { getCadModelBoardPosition } from "./getCadModelBoardPosition"
+import { getCadModelPlacement } from "./getCadModelPlacement"
 import { getCadModelLayer } from "./getCadModelLayer"
 
 const DEFAULT_PCB_THICKNESS_MM = 1.6
@@ -31,12 +31,12 @@ export function createPcbCadModels(
     const pcbComponentId = context.componentContext.getPcbComponentId(body)
     const component = document.getComponentForRecord(body)
     if (!pcbComponentId || !component) return []
-    const modelPosition = getCadModelBoardPosition({
+    const modelPlacement = getCadModelPlacement({
       body,
       componentPosition: component.position,
       pcbBoard,
     })
-    if (!modelPosition) return []
+    if (!modelPlacement) return []
 
     const layer = getCadModelLayer({ body, componentSide: component.side })
     const modelZOffsetMillimeters =
@@ -53,13 +53,13 @@ export function createPcbCadModels(
         cad_component_id: `cad_component_altium_${bodyIndex}`,
         pcb_component_id: pcbComponentId,
         source_component_id: `source_component_altium_${componentIndex}`,
-        position: { ...modelPosition, z: positionZ },
+        position: { ...modelPlacement.position, z: positionZ },
         rotation: getBoardFrameModelCcwRotationDegrees({ body, layer }),
         layer,
         model_step_url: modelStepUrl,
         model_unit_to_mm_scale_factor: 1,
         model_board_normal_direction: "z+",
-        model_origin_position: { x: 0, y: 0, z: 0 },
+        model_origin_position: modelPlacement.modelOriginPosition,
         model_object_fit: "contain_within_bounds",
         anchor_alignment: "center",
         ...(body.opacity !== undefined && body.opacity < 1
