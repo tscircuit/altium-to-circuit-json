@@ -23,13 +23,22 @@ export function getBoardFrameModelCcwRotationDegrees({
       }),
     }),
   })
-  const boardFrameRotation =
+  const boardSideModelRotation =
     layer === "bottom"
       ? multiplyMatrix3({
           left: getAxisRotationMatrix({ axis: "x", angleDegrees: 180 }),
           right: modelRotationMatrix,
         })
       : modelRotationMatrix
+  // MODEL.2D.ROTATION is the body's board-plane rotation. Its direction is
+  // opposite to MODEL.3D.ROTZ after converting the STEP axes.
+  const boardFrameRotation = multiplyMatrix3({
+    left: getAxisRotationMatrix({
+      axis: "z",
+      angleDegrees: -body.modelRotation2d,
+    }),
+    right: boardSideModelRotation,
+  })
 
   // Altium applies MODEL.3D rotations in model X/Y/Z order. Circuit JSON's
   // Euler angles are consumed in board Z/Y/X order. Conjugating by the STEP
