@@ -28,46 +28,39 @@ export function convertPrimitiveGatePin(
       (record) => record.recordKind === "31",
     ),
   }
-  const elements = renderPin({
+  const { line, nameLabel, designatorLabel } = renderPin({
     record: pin,
     index,
     context: renderingContext,
     options: context.options,
     color,
   })
-  const nameLabel = elements.find(
-    (element) =>
-      element.type === "schematic_text" &&
-      element.schematic_text_id === `schematic_pin_name_altium_${index}`,
-  )
-  if (nameLabel?.type === "schematic_text") {
+  const elements: AnyCircuitElement[] = [
+    line,
+    nameLabel,
+    designatorLabel,
+  ].filter((element) => element !== undefined)
+  if (nameLabel) {
     const parsedLabel = parseAltiumPinLabel(nameLabel.text)
     nameLabel.text = parsedLabel.displayText
     if (parsedLabel.textParts) nameLabel.text_parts = parsedLabel.textParts
     nameLabel.font_size =
       port.schematicPort.display_pin_label_font_size ?? nameLabel.font_size
   }
-  const line = elements.find((element) => element.type === "schematic_line")
   if (line) {
     line.stroke_width = scaleLength(1, scale)
     const direction =
       VECTOR_BY_DIRECTION[port.schematicPort.facing_direction ?? "right"]
-    const designator = elements.find(
-      (element) =>
-        element.type === "schematic_text" &&
-        element.schematic_text_id ===
-          `schematic_pin_designator_altium_${index}`,
-    )
-    if (designator?.type === "schematic_text") {
+    if (designatorLabel) {
       // Pin numbers sit outside the body and inversion bubble, above the stem.
       const margin = scaleLength(9, scale)
-      designator.position = {
+      designatorLabel.position = {
         x: line.x1 + direction.x * margin,
         y: line.y1 + direction.y * margin,
       }
-      designator.anchor =
+      designatorLabel.anchor =
         direction.x > 0 || direction.y > 0 ? "bottom_left" : "bottom_right"
-      designator.font_size = scaleLength(
+      designatorLabel.font_size = scaleLength(
         getFontSize(pin, renderingContext),
         scale,
       )
@@ -111,7 +104,16 @@ export function convertPrimitiveGatePin(
     element.type === "schematic_path" ||
     element.type === "schematic_text"
       ? {
-          ...normalizeSchematicComponentElement(element),
+          ...normalizeSchematicComponentElement(element, {
+            textRole:
+              element === nameLabel
+                ? "pin_name"
+                : element === designatorLabel
+                  ? "pin_number"
+                  : "component_label",
+            // The only generated filled shape here is the hollow inversion bubble.
+            fillRole: "body",
+          }),
           schematic_component_id: port.schematicPort.schematic_component_id,
         }
       : element,

@@ -52,7 +52,10 @@ export function convertMarkedCapacitorBody(
 
   // Curved plates identify polarized bodies even when the plus is drawn with
   // primitives. Keep the complete source body and its original terminals.
-  const body = convertOwnedCustomComponentBody({ identity, records }, context)
+  const body = convertOwnedCustomComponentBody(
+    { identity, records, fillRole: "solid" },
+    context,
+  )
   if (!body) return undefined
   const componentLabelIds = new Set(
     records.flatMap((record) => {

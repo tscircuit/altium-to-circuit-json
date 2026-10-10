@@ -19,9 +19,11 @@ export function convertOwnedCustomComponentBody(
   {
     identity,
     records,
+    fillRole,
   }: {
     identity: ComponentIdentity
     records: AltiumRecord[]
+    fillRole?: "body" | "solid"
   },
   context: ComponentConversionContext,
 ): AnyCircuitElement[] | undefined {
@@ -98,6 +100,7 @@ export function convertOwnedCustomComponentBody(
     {
       ownedRecords: records,
       schematicComponentId: identity.schematicComponentId,
+      fillRole,
     },
     context,
   )

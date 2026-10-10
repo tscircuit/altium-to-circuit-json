@@ -52,7 +52,16 @@ export function convertSchematicRecord(
   if (primitive) return primitive
 
   if (kind === "2") {
-    return renderPin({ record, index, context, options, color })
+    const { line, nameLabel, designatorLabel } = renderPin({
+      record,
+      index,
+      context,
+      options,
+      color,
+    })
+    return [line, nameLabel, designatorLabel].filter(
+      (element) => element !== undefined,
+    )
   }
 
   if (kind === "29") {

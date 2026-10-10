@@ -129,6 +129,11 @@ palette: brown outlines/solid marks, pale-yellow body backgrounds, black
 component labels, teal pin names, and red pin numbers. Transparent fills and
 borders remain transparent. Geometry, label placement, fill flags, and
 electrical connectivity are preserved while these symbols are migrated.
+The primitive matching the component's body bounds uses background paint;
+interior filled graphics use solid ink. Capacitor plates and generated hollow
+inversion bubbles supply their fill roles explicitly. Source RGB colors do not
+determine these roles. Pin names and numbers carry their roles from rendering
+rather than relying on element ID conventions.
 
 This component styling boundary does not recolor standalone sheet drawings,
 notes, wires, or net labels. Keep visual regressions for native selection and

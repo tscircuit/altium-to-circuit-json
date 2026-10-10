@@ -90,7 +90,7 @@ test("signed pin length and port width agree between graphics and connection geo
     context,
     options: { includeText: false },
     color: "#000000",
-  })[0]
+  }).line
   expect(pinLine).toMatchObject({
     type: "schematic_line",
     x1: 10,

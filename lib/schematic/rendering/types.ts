@@ -1,5 +1,9 @@
 import type { AltiumPoint, AltiumRecord } from "altiumts"
-import type { AnyCircuitElement } from "circuit-json"
+import type {
+  AnyCircuitElement,
+  SchematicLine,
+  SchematicText,
+} from "circuit-json"
 import type { SchematicContext } from "../document"
 
 export interface PrimitiveRenderOptions {
@@ -24,4 +28,10 @@ export interface RenderedPowerPortGraphics {
 export interface SymbolRenderOptions {
   includeHidden?: boolean
   includeText?: boolean
+}
+
+export interface RenderedPin {
+  line?: SchematicLine
+  nameLabel?: SchematicText
+  designatorLabel?: SchematicText
 }
