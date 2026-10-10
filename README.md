@@ -112,6 +112,28 @@ Schematic conversion currently emits:
 - active multipart/display-mode filtering, with multiple placed symbol parts
   sharing one physical source component.
 
+### Schematic component style
+
+Prefer native `schematic-symbols` catalog entries whenever the converter can
+map the component faithfully. Source artwork must not replace a compatible
+native symbol simply to retain its colors. Add reusable missing symbol types
+to the catalog and map their terminal functions explicitly. Implement matching
+symbol types in tscircuit's conventions rather than copying Altium artwork
+into the catalog.
+
+Existing compatibility bodies are still used for unsupported component types,
+marked/curved capacitors whose polarity is not yet mapped natively, and tightly
+spaced rotated resistor labels. These are migration cases, not an alternative
+source-color theme. Their component-owned graphics use the default tscircuit
+palette: brown outlines/solid marks, pale-yellow body backgrounds, black
+component labels, teal pin names, and red pin numbers. Transparent fills and
+borders remain transparent. Geometry, label placement, fill flags, and
+electrical connectivity are preserved while these symbols are migrated.
+
+This component styling boundary does not recolor standalone sheet drawings,
+notes, wires, or net labels. Keep visual regressions for native selection and
+compatibility bodies, and verify terminal connections as well as snapshots.
+
 By default, schematic coordinates are scaled from the Altium page dimensions
 and centered on the emitted `schematic_sheet`. Set `schematicUnitScale` to use
 an explicit coordinate scale, or `centerOnSchematicSheet: false` to preserve an

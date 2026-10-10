@@ -4,6 +4,7 @@ import { type AnyCircuitElement, any_circuit_element } from "circuit-json"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
+import { expectSchematicComponentPalette } from "../helpers/expect-schematic-component-palette"
 
 type SchematicComponent = Extract<
   AnyCircuitElement,
@@ -20,6 +21,7 @@ test("preserves pinless component graphics on the TI mounting hardware sheet", a
   const sourceComponents = circuitJson.filter(
     (element) => element.type === "source_component",
   )
+  expectSchematicComponentPalette(circuitJson)
   const schematicComponents = circuitJson.filter(
     (element): element is SchematicComponent =>
       element.type === "schematic_component",

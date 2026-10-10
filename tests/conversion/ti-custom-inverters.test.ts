@@ -4,6 +4,7 @@ import { any_circuit_element } from "circuit-json"
 import { convertAltiumSchDocToCircuitJson } from "../../lib"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { findDetachedSymbolPortIds } from "../helpers/find-detached-symbol-ports"
+import { expectSchematicComponentPalette } from "../helpers/expect-schematic-component-palette"
 import { readReferenceBytes } from "../helpers/read-reference"
 
 test.each([
@@ -14,6 +15,7 @@ test.each([
     await readReferenceBytes(`${TI_TMDS62LEVM_FIXTURE_NAME}/${sheet}.SchDoc`),
   )
   const circuitJson = convertAltiumSchDocToCircuitJson(document)
+  expectSchematicComponentPalette(circuitJson)
   const source = circuitJson.find(
     (element) => element.type === "source_component" && element.name === name,
   )
@@ -69,7 +71,10 @@ test.each([
             "schematic_pin_designator_",
           ),
     )
-    expect(numericLabel).toMatchObject({ text: String(port.pin_number) })
+    expect(numericLabel).toMatchObject({
+      text: String(port.pin_number),
+      color: "#a90000",
+    })
   }
   expect(findDetachedSymbolPortIds(circuitJson)).toEqual([])
   expect(

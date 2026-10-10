@@ -1,5 +1,6 @@
 import type { AltiumPoint } from "altiumts"
 import type { SchematicComponent, SchematicText } from "circuit-json"
+import { SCHEMATIC_COMPONENT_COLORS } from "./schematicComponentColors"
 
 export function createComponentText({
   anchor,
@@ -17,7 +18,7 @@ export function createComponentText({
   return {
     type: "schematic_text",
     anchor,
-    color: "#006464",
+    color: SCHEMATIC_COMPONENT_COLORS.label,
     font_size: 0.18,
     position,
     rotation: 0,

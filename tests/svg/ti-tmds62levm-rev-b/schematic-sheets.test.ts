@@ -7,6 +7,7 @@ import {
   TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS,
 } from "../../../scripts/references/reference-manifest"
 import { findDetachedSymbolPortIds } from "../../helpers/find-detached-symbol-ports"
+import { expectSchematicComponentPalette } from "../../helpers/expect-schematic-component-palette"
 import { readReferenceBytes } from "../../helpers/read-reference"
 import { renderImportedSchematicToSvg } from "../../helpers/render-imported-schematic"
 import { stackAltiumAndCircuitJsonSvgs } from "../../helpers/stack-svg-comparison"
@@ -32,6 +33,7 @@ for (const sheetNumber of TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS) {
         ),
       ).toBe(true)
       expect(findDetachedSymbolPortIds(circuitJson)).toEqual([])
+      expectSchematicComponentPalette(circuitJson)
 
       const title = `TI TMDS62LEVM Rev. B schematic sheet ${sheetNumber}`
       const altiumSvg = serializeAltiumSheetToSvg(document, {

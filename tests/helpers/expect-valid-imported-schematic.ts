@@ -1,6 +1,7 @@
 import { expect } from "bun:test"
 import { type AnyCircuitElement, any_circuit_element } from "circuit-json"
 import { findDetachedSymbolPortIds } from "./find-detached-symbol-ports"
+import { expectSchematicComponentPalette } from "./expect-schematic-component-palette"
 
 export function expectValidImportedSchematic({
   circuitJson,
@@ -29,6 +30,7 @@ export function expectValidImportedSchematic({
     ),
   ).toBe(true)
   expect(findDetachedSymbolPortIds(circuitJson)).toEqual([])
+  expectSchematicComponentPalette(circuitJson)
   expect(circuitJsonSvg).toContain('data-circuit-json-type="schematic_sheet"')
   expect(circuitJsonSvg).not.toContain("Could not match ports")
   expect(circuitJsonSvg).not.toContain("Symbol not found")

@@ -23,6 +23,10 @@ export function selectComponentBody(
   },
   context: ComponentConversionContext,
 ) {
+  // Prefer catalog symbols to source artwork. The existing compatibility
+  // exceptions below retain capacitor polarity and tightly spaced rotated
+  // labels until those cases can be represented faithfully by native symbols.
+  // All owned graphics pass through the component palette normalization.
   let symbolSelection = selectCircuitJsonSymbol({
     ...identity,
     ports: componentPorts,

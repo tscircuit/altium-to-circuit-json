@@ -6,6 +6,7 @@ import type { ConvertedPort } from "../model"
 import { renderPin } from "../rendering/renderPin"
 import { altiumColorToCss, getFontSize } from "../text"
 import { createPinClockSymbol } from "./createPinClockSymbol"
+import { normalizeSchematicComponentElement } from "./normalizeSchematicComponentElement"
 import { parseAltiumPinLabel } from "./parseAltiumPinLabel"
 import type { ComponentConversionContext } from "./types"
 
@@ -110,7 +111,7 @@ export function convertPrimitiveGatePin(
     element.type === "schematic_path" ||
     element.type === "schematic_text"
       ? {
-          ...element,
+          ...normalizeSchematicComponentElement(element),
           schematic_component_id: port.schematicPort.schematic_component_id,
         }
       : element,
