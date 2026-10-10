@@ -1,15 +1,11 @@
 import {
   type AltiumRecord,
-  AltiumSchArcRecord,
   AltiumSchDesignatorRecord,
-  AltiumSchEllipticalArcRecord,
-  AltiumSchLabelRecord,
-  AltiumSchLineRecord,
   AltiumSchParameterRecord,
-  AltiumSchPolylineRecord,
 } from "altiumts"
 import type { AnyCircuitElement } from "circuit-json"
 import type { SymbolSelection } from "../model"
+import { getCapacitorPolarityMarks } from "./getCapacitorPolarityMarks"
 import { convertOwnedCustomComponentBody } from "./convertOwnedCustomComponentBody"
 import type { ComponentConversionContext, ComponentIdentity } from "./types"
 
@@ -25,33 +21,15 @@ export function convertMarkedCapacitorBody(
   },
   context: ComponentConversionContext,
 ): AnyCircuitElement[] | undefined {
-  const hasCurvedPlate =
-    records.some(
-      (record) =>
-        record instanceof AltiumSchArcRecord ||
-        record instanceof AltiumSchEllipticalArcRecord,
-    ) &&
-    records.some(
-      (record) =>
-        record instanceof AltiumSchLineRecord ||
-        record instanceof AltiumSchPolylineRecord,
-    )
   if (
     !symbolSelection?.name.startsWith("capacitor_") ||
     symbolSelection.name.startsWith("capacitor_polarized_") ||
-    (!hasCurvedPlate &&
-      !records.some(
-        (record) =>
-          record instanceof AltiumSchLabelRecord &&
-          !record.getBoolean("ISHIDDEN") &&
-          record.text?.trim() === "+",
-      ))
-  ) {
+    getCapacitorPolarityMarks(records).length === 0
+  )
     return undefined
-  }
 
-  // Curved plates identify polarized bodies even when the plus is drawn with
-  // primitives. Keep the complete source body and its original terminals.
+  // When polarity cannot be mapped confidently to a native terminal, keep
+  // the complete source body and its original terminals instead of guessing.
   const body = convertOwnedCustomComponentBody({ identity, records }, context)
   if (!body) return undefined
   const componentLabelIds = new Set(

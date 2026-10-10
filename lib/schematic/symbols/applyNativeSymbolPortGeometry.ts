@@ -5,6 +5,7 @@ import { directionToSide } from "../connectivity"
 import {
   getDirectionForVector,
   getPointDistance,
+  scalePoint,
   subtractPoints,
 } from "../geometry"
 import type { SymbolPortAssignment, SymbolSelection } from "../model"
@@ -27,7 +28,10 @@ export function applyNativeSymbolPortGeometry({
   }
 
   for (const [symbolPort, assignments] of assignmentsBySymbolPort) {
-    const offset = subtractPoints(symbolPort, selection.symbol.center)
+    const offset = scalePoint(
+      subtractPoints(symbolPort, selection.symbol.center),
+      selection.geometryScale ?? 1,
+    )
     const direction = getDirectionForVector(offset)
     const symbolToSchematicTransform = translate(center.x, center.y)
     const symbolPortCenter = applyToPoint(symbolToSchematicTransform, offset)

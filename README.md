@@ -112,6 +112,22 @@ Schematic conversion currently emits:
 - active multipart/display-mode filtering, with multiple placed symbol parts
   sharing one physical source component.
 
+Two-terminal resistors and capacitors use native symbols even when their source
+labels are rotated or a capacitor has curved plates. Functional pin names and
+visible polarity marks identify positive terminals. Curved plates help orient
+already-polarized parts; they alone do not imply polarity (TI ceramic capacitors
+also use them). Pin numbering does not override explicit evidence. Ambiguous polarity keeps
+the source-body fallback, and multi-terminal capacitor networks keep their
+original terminals.
+
+Native resistor/capacitor labels retain source positions, rotation, and visibility
+as black sheet text. The current SVG renderer skips text owned by native symbols,
+so these annotations have sheet IDs and component-prefixed text IDs. The native
+automatic labels are suppressed using `display_name: ""` and
+`symbol_display_value: ""`; source `name`, component ratings, and connections are
+unchanged. Absent source labels fall back to catalog positions. `includeText:
+false` suppresses these labels without removing a capacitor's native polarity mark.
+
 By default, schematic coordinates are scaled from the Altium page dimensions
 and centered on the emitted `schematic_sheet`. Set `schematicUnitScale` to use
 an explicit coordinate scale, or `centerOnSchematicSheet: false` to preserve an

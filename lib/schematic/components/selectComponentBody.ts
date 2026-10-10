@@ -1,10 +1,12 @@
 import type { AltiumRecord, AltiumSchPinRecord } from "altiumts"
+import type { Bounds } from "../geometry"
 import type { ConvertedPort } from "../model"
 import { selectCircuitJsonSymbol } from "../symbols"
 import { convertMarkedCapacitorBody } from "./convertMarkedCapacitorBody"
 import { convertOwnedComponentBody } from "./convertOwnedComponentBody"
 import { convertOwnedSingleInputGateBody } from "./convertOwnedSingleInputGateBody"
-import { convertRotatedResistorBody } from "./convertRotatedResistorBody"
+import { getCapacitorPositivePort } from "./getCapacitorPositivePort"
+import { getNativeResistorScale } from "./getNativeResistorScale"
 import type { ComponentConversionContext, ComponentIdentity } from "./types"
 
 export function selectComponentBody(
@@ -14,29 +16,31 @@ export function selectComponentBody(
     records,
     componentPorts,
     visibleSymbolLabels,
+    bodyBounds,
   }: {
     identity: ComponentIdentity
     pins: AltiumSchPinRecord[]
     records: AltiumRecord[]
     componentPorts: ConvertedPort[]
     visibleSymbolLabels: Set<string>
+    bodyBounds: Bounds
   },
   context: ComponentConversionContext,
 ) {
   let symbolSelection = selectCircuitJsonSymbol({
     ...identity,
     ports: componentPorts,
+    positiveCapacitorPort: getCapacitorPositivePort({
+      ports: componentPorts,
+      records,
+      libraryReference: identity.libraryReference,
+    }),
   })
   const polarizedCapacitorBody = convertMarkedCapacitorBody(
     { identity, records, symbolSelection },
     context,
   )
   if (polarizedCapacitorBody) symbolSelection = undefined
-  const rotatedResistorBody = convertRotatedResistorBody(
-    { identity, pins, records, symbolSelection },
-    context,
-  )
-  if (rotatedResistorBody) symbolSelection = undefined
   const singleInputGateBody = symbolSelection
     ? undefined
     : convertOwnedSingleInputGateBody(
@@ -45,7 +49,6 @@ export function selectComponentBody(
       )
   const ownedComponentBody =
     polarizedCapacitorBody ??
-    rotatedResistorBody ??
     singleInputGateBody ??
     (symbolSelection
       ? undefined
@@ -53,5 +56,12 @@ export function selectComponentBody(
           { identity, pins, records, visibleSymbolLabels },
           context,
         ))
+  if (symbolSelection)
+    symbolSelection.geometryScale = getNativeResistorScale({
+      bodyBounds,
+      scale: context.options.scale,
+      selection: symbolSelection,
+      records,
+    })
   return { symbolSelection, ownedComponentBody, singleInputGateBody }
 }
