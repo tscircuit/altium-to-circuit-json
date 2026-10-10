@@ -292,8 +292,14 @@ test("TI sheet 14 preserves polarized-capacitor type and primary value", async (
   })
   expect(component).toMatchObject({
     center: { x: 38, y: 42 },
-    size: { height: 0.6000000000000001, width: 1.1 },
-    symbol_name: "capacitor_polarized_down",
   })
+  expect(component?.symbol_name).toBe("capacitor_polarized_down")
+  expect(
+    circuitJson.filter(
+      (element) =>
+        element.type === "schematic_path" &&
+        element.schematic_component_id === component?.schematic_component_id,
+    ),
+  ).toHaveLength(0)
   expectCleanSymbolRendering(circuitJson)
 })

@@ -1,3 +1,4 @@
+import { assignPolarizedCapacitorPorts } from "./assignPolarizedCapacitorPorts"
 import type { ConvertedPort, SymbolSelection } from "../model"
 import { assignConvertedPortsToSymbolPorts } from "./assignConvertedPortsToSymbolPorts"
 import { classifyComponent } from "./classifyComponent"
@@ -12,11 +13,13 @@ export function selectCircuitJsonSymbol({
   designator,
   libraryReference,
   ports,
+  positiveCapacitorPort,
 }: {
   description?: string
   designator: string
   libraryReference: string
   ports: ConvertedPort[]
+  positiveCapacitorPort?: ConvertedPort | null
 }): SymbolSelection | undefined {
   const classification = classifyComponent({
     description,
@@ -46,9 +49,11 @@ export function selectCircuitJsonSymbol({
   } else if (classification === "resistor") {
     baseName = "boxresistor"
   } else if (classification === "capacitor") {
-    baseName = isPolarizedCapacitor(libraryReference)
-      ? "capacitor_polarized"
-      : "capacitor"
+    if (positiveCapacitorPort === null) return undefined
+    baseName =
+      positiveCapacitorPort || isPolarizedCapacitor(libraryReference)
+        ? "capacitor_polarized"
+        : "capacitor"
   } else if (classification === "ferrite_bead") {
     baseName = "ferrite_bead"
   } else if (classification === "inductor") {
@@ -79,18 +84,25 @@ export function selectCircuitJsonSymbol({
     ) {
       return []
     }
-    const assignments = assignConvertedPortsToSymbolPorts({
-      ports,
-      symbol,
-      options: {
-        allowFunctionalPortReuse: classification === "mosfet",
-        matchDiodeTerminals: classification === "diode",
-        geometryInterchangeableLabels:
-          classification === "crystal" && ports.length === 4
-            ? new Set(["2", "4"])
-            : undefined,
-      },
-    })
+    const assignments =
+      classification === "capacitor" && positiveCapacitorPort
+        ? assignPolarizedCapacitorPorts({
+            ports,
+            positivePort: positiveCapacitorPort,
+            symbol,
+          })
+        : assignConvertedPortsToSymbolPorts({
+            ports,
+            symbol,
+            options: {
+              allowFunctionalPortReuse: classification === "mosfet",
+              matchDiodeTerminals: classification === "diode",
+              geometryInterchangeableLabels:
+                classification === "crystal" && ports.length === 4
+                  ? new Set(["2", "4"])
+                  : undefined,
+            },
+          })
     return assignments.length === ports.length
       ? [{ assignments, name, symbol } satisfies SymbolSelection]
       : []

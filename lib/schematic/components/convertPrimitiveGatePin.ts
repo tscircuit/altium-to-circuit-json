@@ -1,3 +1,4 @@
+import { normalizeOwnedComponentElementColor } from "./normalizeOwnedComponentElementColor"
 import { AltiumSchPinRecord } from "altiumts"
 import type { AnyCircuitElement } from "circuit-json"
 import { VECTOR_BY_DIRECTION } from "../connectivity"
@@ -104,15 +105,17 @@ export function convertPrimitiveGatePin(
   // the renderer synthesize labels already supplied by owned text records.
   delete port.schematicPort.display_pin_label
   delete port.schematicPort.display_pin_label_text_parts
-  return elements.map((element) =>
-    element.type === "schematic_line" ||
-    element.type === "schematic_circle" ||
-    element.type === "schematic_path" ||
-    element.type === "schematic_text"
-      ? {
-          ...element,
-          schematic_component_id: port.schematicPort.schematic_component_id,
-        }
-      : element,
-  )
+  return elements
+    .map((element) =>
+      element.type === "schematic_line" ||
+      element.type === "schematic_circle" ||
+      element.type === "schematic_path" ||
+      element.type === "schematic_text"
+        ? {
+            ...element,
+            schematic_component_id: port.schematicPort.schematic_component_id,
+          }
+        : element,
+    )
+    .map(normalizeOwnedComponentElementColor)
 }

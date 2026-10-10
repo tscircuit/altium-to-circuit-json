@@ -1,10 +1,11 @@
 import type { AltiumRecord, AltiumSchPinRecord } from "altiumts"
 import type { ConvertedPort } from "../model"
 import { selectCircuitJsonSymbol } from "../symbols"
-import { convertMarkedCapacitorBody } from "./convertMarkedCapacitorBody"
+import { getCapacitorPositivePort } from "./getCapacitorPositivePort"
+import { getNativeResistorScale } from "./getNativeResistorScale"
+import type { Bounds } from "../geometry"
 import { convertOwnedComponentBody } from "./convertOwnedComponentBody"
 import { convertOwnedSingleInputGateBody } from "./convertOwnedSingleInputGateBody"
-import { convertRotatedResistorBody } from "./convertRotatedResistorBody"
 import type { ComponentConversionContext, ComponentIdentity } from "./types"
 
 export function selectComponentBody(
@@ -14,29 +15,33 @@ export function selectComponentBody(
     records,
     componentPorts,
     visibleSymbolLabels,
+    bodyBounds,
   }: {
     identity: ComponentIdentity
     pins: AltiumSchPinRecord[]
     records: AltiumRecord[]
     componentPorts: ConvertedPort[]
+    bodyBounds: Bounds
     visibleSymbolLabels: Set<string>
   },
   context: ComponentConversionContext,
 ) {
-  let symbolSelection = selectCircuitJsonSymbol({
+  const symbolSelection = selectCircuitJsonSymbol({
     ...identity,
     ports: componentPorts,
+    positiveCapacitorPort: getCapacitorPositivePort({
+      ports: componentPorts,
+      records,
+      libraryReference: identity.libraryReference,
+    }),
   })
-  const polarizedCapacitorBody = convertMarkedCapacitorBody(
-    { identity, records, symbolSelection },
-    context,
-  )
-  if (polarizedCapacitorBody) symbolSelection = undefined
-  const rotatedResistorBody = convertRotatedResistorBody(
-    { identity, pins, records, symbolSelection },
-    context,
-  )
-  if (rotatedResistorBody) symbolSelection = undefined
+  if (symbolSelection)
+    symbolSelection.geometryScale = getNativeResistorScale({
+      bodyBounds,
+      scale: context.options.scale,
+      selection: symbolSelection,
+      records,
+    })
   const singleInputGateBody = symbolSelection
     ? undefined
     : convertOwnedSingleInputGateBody(
@@ -44,8 +49,6 @@ export function selectComponentBody(
         context,
       )
   const ownedComponentBody =
-    polarizedCapacitorBody ??
-    rotatedResistorBody ??
     singleInputGateBody ??
     (symbolSelection
       ? undefined
@@ -53,5 +56,9 @@ export function selectComponentBody(
           { identity, pins, records, visibleSymbolLabels },
           context,
         ))
-  return { symbolSelection, ownedComponentBody, singleInputGateBody }
+  return {
+    symbolSelection,
+    ownedComponentBody,
+    singleInputGateBody,
+  }
 }
