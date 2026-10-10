@@ -10,14 +10,11 @@ export function getCopperStackEntryKeys(
       (entry.source === "legacy" ? String(entry.index) : undefined),
   )
   const nameIdentity = getCopperLayerIdentity(entry.name)
-  if (identity && nameIdentity && identity !== nameIdentity) {
-    throw new Error(
-      `Ambiguous copper layer name ${JSON.stringify(entry.name)} for ${identity} in board stack`,
-    )
-  }
   return [
     entry.layerId,
-    entry.name,
+    identity && nameIdentity && identity !== nameIdentity
+      ? undefined
+      : entry.name,
     entry.source === "legacy" ? String(entry.index) : undefined,
   ].flatMap((layer) =>
     layer ? [getCopperLayerIdentity(layer) ?? normalizeLayer(layer)] : [],
