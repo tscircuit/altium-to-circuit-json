@@ -49,12 +49,52 @@ export function getCapacitorPolarityMarks(
     for (let index = 1; index < points.length; index++)
       strokes.push({ start: points[index - 1]!, end: points[index]! })
   }
-  for (const horizontal of strokes.filter(
-    (s) => Math.abs(s.start.y - s.end.y) < 1e-5 && s.start.x !== s.end.x,
-  )) {
-    for (const vertical of strokes.filter(
-      (s) => Math.abs(s.start.x - s.end.x) < 1e-5 && s.start.y !== s.end.y,
-    )) {
+  const horizontalStrokes: typeof strokes = []
+  const verticalStrokes: typeof strokes = []
+  const tolerance = 1e-5
+  // A plus can be split at its crossing, across either polyline vertices or
+  // separate records. Check the centers of complete strokes, not each piece.
+  for (const [axis, mergedStrokes] of [
+    ["x", horizontalStrokes],
+    ["y", verticalStrokes],
+  ] as const) {
+    const crossAxis = axis === "x" ? "y" : "x"
+    const lineGroups: (typeof strokes)[] = []
+    for (const stroke of strokes) {
+      if (
+        Math.abs(stroke.start[crossAxis] - stroke.end[crossAxis]) >=
+          tolerance ||
+        stroke.start[axis] === stroke.end[axis]
+      )
+        continue
+      const forward = stroke.start[axis] < stroke.end[axis]
+      const normalized = {
+        start: { ...(forward ? stroke.start : stroke.end) },
+        end: { ...(forward ? stroke.end : stroke.start) },
+      }
+      const group = lineGroups.find(
+        ([first]) =>
+          first &&
+          Math.abs(first.start[crossAxis] - normalized.start[crossAxis]) <
+            tolerance,
+      )
+      if (group) group.push(normalized)
+      else lineGroups.push([normalized])
+    }
+    for (const group of lineGroups) {
+      group.sort((left, right) => left.start[axis] - right.start[axis])
+      const mergedGroup: typeof strokes = []
+      for (const stroke of group) {
+        const previous = mergedGroup.at(-1)
+        if (previous && stroke.start[axis] <= previous.end[axis] + tolerance) {
+          if (stroke.end[axis] > previous.end[axis]) previous.end = stroke.end
+        } else mergedGroup.push(stroke)
+      }
+      mergedStrokes.push(...mergedGroup)
+    }
+  }
+  for (const horizontal of horizontalStrokes) {
+    for (const vertical of verticalStrokes) {
       const width = Math.abs(horizontal.end.x - horizontal.start.x),
         height = Math.abs(vertical.end.y - vertical.start.y)
       const x = vertical.start.x,
