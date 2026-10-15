@@ -67,6 +67,15 @@ export class PcbCopperLayerMap {
     const mapped = this.mappings.find((mapping) => mapping.keys.includes(key))
     if (mapped) return mapped.layer
     if (identity) {
+      if (
+        this.mappings.some(
+          (mapping) => getCopperLayerIdentity(mapping.displayName) === identity,
+        )
+      ) {
+        throw new Error(
+          `Ambiguous copper layer ${JSON.stringify(layer)}: its display name belongs to a different native layer in the board stack`,
+        )
+      }
       throw new Error(
         `Cannot map copper layer ${JSON.stringify(layer)}: it is absent from the board stack`,
       )
