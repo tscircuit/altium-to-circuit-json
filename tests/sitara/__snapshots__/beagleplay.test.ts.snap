@@ -1,0 +1,15 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`BeaglePlay: Altium beside Circuit JSON for both PCB layers and every schematic sheet: PCB conversion inventory 1`] = `
+{
+  "components": 782,
+  "height": 80.00238000000002,
+  "layerCount": 8,
+  "nets": 546,
+  "pads": 2773,
+  "platedHoles": 65,
+  "traces": 12388,
+  "vias": 2056,
+  "width": 80.00238000000002,
+}
+`;

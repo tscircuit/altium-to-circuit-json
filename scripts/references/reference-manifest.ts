@@ -1,4 +1,5 @@
 import { resolve } from "node:path"
+import { sitaraZipBundles, tmds62lProjectReference } from "./sitara-references"
 
 export interface DirectReferenceSpec {
   filename: string
@@ -224,6 +225,7 @@ const tiSchematicHashes: Record<string, string> = {
 }
 
 export const ZIP_BUNDLES: ZipBundleSpec[] = [
+  ...sitaraZipBundles,
   {
     archiveSha256:
       "563481585d9c44e325a46da7891650d70573fa74008de68f80e7fcc9010c388f",
@@ -373,6 +375,7 @@ export const ZIP_BUNDLES: ZipBundleSpec[] = [
         archivePath:
           "TMDS62LEVM Design File Package Altium (Rev. B)/PROC180/PROC181E1_1/3_BoardFile/Altium/PROC181E1-1_PRJPCB.zip",
         outputs: [
+          tmds62lProjectReference,
           {
             archivePath: "PROC181E1-1_BRD_11_3.pcbdoc",
             filename: TI_TMDS62LEVM_PCB_FILENAME,

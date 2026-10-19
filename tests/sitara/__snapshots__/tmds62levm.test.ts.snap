@@ -1,0 +1,15 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TMDS62LEVM: Altium beside Circuit JSON for both PCB layers and every schematic sheet: PCB conversion inventory 1`] = `
+{
+  "components": 1585,
+  "height": 142.875762,
+  "layerCount": 6,
+  "nets": 1000,
+  "pads": 5478,
+  "platedHoles": 132,
+  "traces": 22211,
+  "vias": 3267,
+  "width": 136.02877544,
+}
+`;
