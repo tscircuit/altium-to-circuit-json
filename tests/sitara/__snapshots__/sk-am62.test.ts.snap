@@ -1,0 +1,15 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SK-AM62: Altium beside Circuit JSON for both PCB layers and every schematic sheet: PCB conversion inventory 1`] = `
+{
+  "components": 1389,
+  "height": 155.176728,
+  "layerCount": 10,
+  "nets": 1011,
+  "pads": 4939,
+  "platedHoles": 180,
+  "traces": 22340,
+  "vias": 3263,
+  "width": 84.99982999999999,
+}
+`;
