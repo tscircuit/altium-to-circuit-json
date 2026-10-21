@@ -32,6 +32,7 @@ export const REFERENCE_OUTPUT_DIRECTORY = resolve(
   "../../tests/fixtures/downloaded",
 )
 
+export const BEAGLEBONE_BLACK_PCB_FILENAME = "beaglebone-black-rev-b4.PcbDoc"
 export const TI_TMDS62LEVM_FIXTURE_NAME = "ti-tmds62levm-rev-b"
 export const TI_TMDS62LEVM_PCB_FILENAME = `${TI_TMDS62LEVM_FIXTURE_NAME}.PcbDoc`
 export const TI_TMDS62LEVM_SCHEMATIC_SHEET_NUMBERS = Array.from(
@@ -224,6 +225,29 @@ const tiSchematicHashes: Record<string, string> = {
 }
 
 export const ZIP_BUNDLES: ZipBundleSpec[] = [
+  {
+    archiveSha256:
+      "7ff2ca881779f51b9fcb83e041bd06125fc2cb91ba5111c8d360b9df1a651413",
+    nestedArchives: [
+      {
+        archivePath: "BeagleBoneBlackB3_Altium.zip",
+        outputs: [
+          {
+            archivePath:
+              "BeagleBoneBlackB3_Altium/BeagleBone_Black_RevB4.PcbDoc",
+            filename: BEAGLEBONE_BLACK_PCB_FILENAME,
+            sha256:
+              "c92c3da1d9d5a0017331fa7208d8f0a0aaa441c6c696b1c422b97578a132948c",
+          },
+        ],
+        sha256:
+          "8737e05b013c8d0df55ede8facd021bc49997e3def3591fdaf04e9928402cc58",
+      },
+    ],
+    outputs: [],
+    source: "BeagleBone Black Rev B4 official Altium release",
+    url: "https://github.com/Circuitco/-BeagleBone-Black-RevA5/raw/master/BeagleBoardBlack_RevA5_Altium.zip",
+  },
   {
     archiveSha256:
       "563481585d9c44e325a46da7891650d70573fa74008de68f80e7fcc9010c388f",
