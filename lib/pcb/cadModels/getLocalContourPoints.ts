@@ -15,7 +15,7 @@ export function getLocalContourPoints({
     -componentPosition.x,
     -componentPosition.y,
   )
-  return removeClosingPoint({
+  const points: JscadPoint2[] = removeClosingPoint({
     points: contour.points,
     maxEndpointGapMils: 0.0001,
   }).map((point) => {
@@ -23,4 +23,9 @@ export function getLocalContourPoints({
     const localPoint = applyToPoint(toComponentCoordinates, pointMillimeters)
     return [localPoint.x, localPoint.y]
   })
+
+  // Each JSCAD profile must face counterclockwise, including the positive
+  // profiles subtracted as holes. Translation and mm conversion preserve the
+  // parser's winding; extrusion height determines the board-side direction.
+  return contour.winding === "clockwise" ? points.reverse() : points
 }
