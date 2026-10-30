@@ -3,6 +3,7 @@ export type ComponentClassification =
   | "crystal"
   | "diode"
   | "ferrite_bead"
+  | "fuse"
   | "inductor"
   | "led"
   | "mosfet"

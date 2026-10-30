@@ -55,6 +55,8 @@ export function selectCircuitJsonSymbol({
     baseName = "inductor"
   } else if (classification === "led") {
     baseName = "led"
+  } else if (classification === "fuse") {
+    candidateNames = ["fuse_horz", "fuse_vert"]
   }
   if (classification === "diode") {
     const isSchottky = [libraryReference, description].some((value) =>
@@ -88,7 +90,9 @@ export function selectCircuitJsonSymbol({
         geometryInterchangeableLabels:
           classification === "crystal" && ports.length === 4
             ? new Set(["2", "4"])
-            : undefined,
+            : classification === "fuse"
+              ? new Set(["1", "2"])
+              : undefined,
       },
     })
     return assignments.length === ports.length
