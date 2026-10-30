@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { AltiumArcRecord } from "altiumts"
 import { TI_POWER_REFERENCE_PCB_FILENAMES } from "../../scripts/references/reference-manifest"
 import { createOpenSourcePcbComparison } from "../helpers/create-open-source-pcb-comparison"
 import { createRoutingConstraintsComparisonSvg } from "../helpers/create-routing-constraints-comparison-svg"
@@ -31,7 +32,9 @@ test(
 
     const layerSpecificKeepoutArcs = circuitJson.filter(
       (element) =>
-        element.type === "pcb_keepout" && element.shape === "outline",
+        element.type === "pcb_keepout" &&
+        element.shape === "outline" &&
+        element.layers.length === 1,
     )
     expect(layerSpecificKeepoutArcs).toHaveLength(159)
     expect(layerSpecificKeepoutArcs).toContainEqual(
@@ -41,6 +44,53 @@ test(
         stroke_width: 0.0254,
       }),
     )
+    const sourceCircles = document.records.flatMap((record, recordIndex) =>
+      record instanceof AltiumArcRecord &&
+      record.layer === "KEEPOUT" &&
+      record.isFullCircle
+        ? [{ record, recordIndex }]
+        : [],
+    )
+    expect(sourceCircles).toHaveLength(16)
+    for (const { record, recordIndex } of sourceCircles) {
+      const center = record.center
+      const radius = record.radiusMils
+      if (!center || !radius) throw new Error("Expected full-circle geometry")
+      const width = (record.widthMils ?? 4) * 0.0254
+      const keepout = circuitJson.find(
+        (e) =>
+          e.type === "pcb_keepout" &&
+          e.pcb_keepout_id === `pcb_keepout_altium_arc_${recordIndex}`,
+      )
+      expect(keepout).toMatchObject({
+        shape: "outline",
+        stroke_width: width,
+        layers: [
+          "top",
+          "inner1",
+          "inner2",
+          "inner3",
+          "inner4",
+          "inner5",
+          "inner6",
+          "bottom",
+        ],
+      })
+      if (keepout?.type !== "pcb_keepout" || keepout.shape !== "outline")
+        throw new Error("Expected an annular keepout")
+      expect(keepout.outline.at(-1)).toEqual(keepout.outline[0])
+      for (let index = 1; index < keepout.outline.length; index++) {
+        const start = keepout.outline[index - 1]
+        const end = keepout.outline[index]
+        if (!start || !end) throw new Error("Expected outline endpoints")
+        expect(
+          Math.hypot(
+            (start.x + end.x) / 2 - center.x * 0.0254,
+            (start.y + end.y) / 2 - center.y * 0.0254,
+          ),
+        ).toBeGreaterThan(width / 2)
+      }
+    }
     const board = circuitJson.find((element) => element.type === "pcb_board")
     if (!board) throw new Error("PMP22650 conversion did not emit a pcb_board")
     const sourceNets = circuitJson.filter(

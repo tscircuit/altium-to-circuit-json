@@ -30,9 +30,25 @@ test(
     expect(
       circuitJson.filter(
         (element) =>
-          element.type === "pcb_keepout" && element.shape === "outline",
+          element.type === "pcb_keepout" &&
+          element.shape === "outline" &&
+          element.layers.length === 1,
       ),
     ).toHaveLength(14)
+    expect(
+      circuitJson.filter(
+        (element) =>
+          element.type === "pcb_keepout" && element.shape === "circle",
+      ),
+    ).toHaveLength(0)
+    expect(
+      circuitJson.filter(
+        (element) =>
+          element.type === "pcb_keepout" &&
+          element.shape === "outline" &&
+          element.layers.length > 1,
+      ),
+    ).toHaveLength(2)
     const representativeElements = [
       ...new Map(
         circuitJson.map((element) => [element.type, element]),

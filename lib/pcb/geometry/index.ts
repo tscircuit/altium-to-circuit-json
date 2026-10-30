@@ -1,4 +1,5 @@
 export * from "./appendConnectedPath"
+export * from "./approximatePcbKeepoutCircle"
 export * from "./createOctagonPoints"
 export * from "./milsToMillimeters"
 export * from "./pointsApproximatelyEqual"
