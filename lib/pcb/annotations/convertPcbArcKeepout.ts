@@ -18,11 +18,11 @@ export function convertPcbArcKeepout({
 
   const rawSweepDegrees = record.endAngle - record.startAngle
   const isFullCircle = rawSweepDegrees === 0 || Math.abs(rawSweepDegrees) >= 360
+  const isDedicatedKeepout = isKeepoutLayer(record.layer)
 
   // An arc on Altium's dedicated keepout layer has historically represented a
   // filled circular keepout in Circuit JSON. Preserve that behavior.
-  if (isKeepoutLayer(record.layer)) {
-    if (!isFullCircle) return undefined
+  if (isDedicatedKeepout && isFullCircle) {
     return {
       type: "pcb_keepout",
       pcb_keepout_id: `pcb_keepout_altium_arc_${recordIndex}`,
@@ -35,7 +35,8 @@ export function convertPcbArcKeepout({
   }
 
   const layer = layerMap.getLayer(record.layer)
-  if (!layer) return undefined
+  const layers = isDedicatedKeepout ? layerMap.layers : layer ? [layer] : []
+  if (layers.length === 0) return undefined
   const outline = approximateAltiumArc({
     center,
     radius: radiusMils,
@@ -50,7 +51,7 @@ export function convertPcbArcKeepout({
     shape: "outline",
     outline,
     stroke_width: milsToMillimeters(record.widthMils ?? 4),
-    layers: [layer],
+    layers,
     description: "Altium arc keepout",
   }
 }
