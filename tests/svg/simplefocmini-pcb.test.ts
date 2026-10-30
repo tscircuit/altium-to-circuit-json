@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { AltiumArcRecord } from "altiumts"
+import { AltiumArcRecord, AltiumTrackRecord } from "altiumts"
 import { createOpenSourcePcbComparison } from "../helpers/create-open-source-pcb-comparison"
 import { expectValidImportedPcb } from "../helpers/expect-valid-imported-pcb"
 
@@ -19,8 +19,23 @@ test(
         record.getBoolean("KEEPOUT") === true,
     )
     expect(sourceArcs).toHaveLength(4)
+    const sourceSegments = document.records.filter(
+      (record) =>
+        record instanceof AltiumTrackRecord && record.layer === "KEEPOUT",
+    )
+    expect(sourceSegments).toHaveLength(8)
     const keepouts = circuitJson.filter((e) => e.type === "pcb_keepout")
-    expect(keepouts).toHaveLength(sourceArcs.length)
+    expect(keepouts).toHaveLength(sourceArcs.length + sourceSegments.length)
+    expect(
+      keepouts.filter((e) =>
+        e.pcb_keepout_id.startsWith("pcb_keepout_altium_arc_"),
+      ),
+    ).toHaveLength(sourceArcs.length)
+    expect(
+      keepouts.filter((e) =>
+        e.pcb_keepout_id.startsWith("pcb_keepout_altium_track_"),
+      ),
+    ).toHaveLength(sourceSegments.length)
     for (const keepout of keepouts) {
       expect(keepout).toMatchObject({
         shape: "outline",
