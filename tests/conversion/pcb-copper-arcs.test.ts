@@ -58,6 +58,7 @@ test("preserves copper text alongside arcs and independent visibility options", 
     "pcb_board",
     "pcb_trace",
     "pcb_silkscreen_path",
+    "pcb_keepout",
     "pcb_copper_text",
     "pcb_silkscreen_text",
   ])
@@ -71,6 +72,7 @@ test("preserves copper text alongside arcs and independent visibility options", 
   expect(withoutTraces.map((element) => element.type)).toEqual([
     "pcb_board",
     "pcb_silkscreen_path",
+    "pcb_keepout",
     "pcb_copper_text",
     "pcb_silkscreen_text",
   ])
@@ -81,6 +83,18 @@ test("preserves copper text alongside arcs and independent visibility options", 
   expect(withoutSilkscreen.map((element) => element.type)).toEqual([
     "pcb_board",
     "pcb_trace",
+    "pcb_keepout",
     "pcb_copper_text",
+  ])
+
+  const withoutKeepouts = convertAltiumPcbDocToCircuitJson(document, {
+    includeKeepouts: false,
+  })
+  expect(withoutKeepouts.map((element) => element.type)).toEqual([
+    "pcb_board",
+    "pcb_trace",
+    "pcb_silkscreen_path",
+    "pcb_copper_text",
+    "pcb_silkscreen_text",
   ])
 })
