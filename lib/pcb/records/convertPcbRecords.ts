@@ -22,17 +22,17 @@ import {
   isOverlayLayer,
 } from "../layers"
 import type { PcbConversionContext } from "../model"
-import { convertPcbArcTrack, convertPcbTrack, convertPcbVia } from "../routing"
+import { convertPcbArcTrack, convertPcbVia } from "../routing"
 import {
   convertPcbSilkscreenArc,
   convertPcbSilkscreenFill,
-  convertPcbSilkscreenLine,
   convertPcbSilkscreenRegion,
   convertPcbSilkscreenText,
   isHiddenPcbComponentText,
 } from "../silkscreen"
 import { convertPcbCopperText, convertPcbMechanicalText } from "../text"
 import { convertPcbPadRecord } from "./convertPcbPadRecord"
+import { convertPcbTrackRecord } from "./convertPcbTrackRecord"
 
 export function convertPcbRecords(context: PcbConversionContext): void {
   const { document, elements, layerMap, netContext, options } = context
@@ -73,19 +73,7 @@ export function convertPcbRecords(context: PcbConversionContext): void {
     }
 
     if (record instanceof AltiumTrackRecord) {
-      if (isCourtyardLayer(record.layer)) continue
-      if (isOverlayLayer(record.layer)) {
-        if (options.includeSilkscreen === false) continue
-        const line = convertPcbSilkscreenLine({ record, recordIndex })
-        if (line) elements.push(line)
-      } else if (options.includeTraces !== false) {
-        const trace = convertPcbTrack({
-          ...routing,
-          record,
-          recordIndex,
-        })
-        if (trace) elements.push(trace)
-      }
+      convertPcbTrackRecord({ context, record, recordIndex })
       continue
     }
 
