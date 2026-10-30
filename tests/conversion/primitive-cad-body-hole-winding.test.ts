@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { AltiumComponentBodyRecord, parseAltiumAscii } from "altiumts"
-import { loadJscadPlan } from "circuit-json-to-gltf"
+import { loadJscadPlan, type STLMesh } from "circuit-json-to-gltf"
 import { createPrimitiveBodyPlan } from "../../lib/pcb/cadModels/createPrimitiveBodyPlan"
 import type { JscadPoint2 } from "../../lib/pcb/cadModels/jscadOperation"
 import { getSignedMeshVolume } from "../helpers/get-signed-mesh-volume"
@@ -46,10 +46,11 @@ test("primitive CAD extrusion preserves holes and standoff with either contour w
         const mesh = loadJscadPlan(plan)
         // 400 x 300 mil exterior minus a 100 x 100 mil through-hole,
         // extruded from 20 mil standoff to 100 mil overall height.
-        expect(Math.abs(getSignedMeshVolume(mesh))).toBeCloseTo(
-          (10.16 * 7.62 - 2.54 ** 2) * 2.032,
+        expect(getSignedMeshVolume(mesh)).toBeCloseTo(
+          -(10.16 * 7.62 - 2.54 ** 2) * 2.032,
           2,
         )
+        expectHoleWallNormalsIntoCavity(mesh)
         expect(mesh.boundingBox.min.y).toBeCloseTo(
           layer === "top" ? 0.508 : -2.54,
           8,
@@ -63,3 +64,23 @@ test("primitive CAD extrusion preserves holes and standoff with either contour w
     }
   }
 })
+
+function expectHoleWallNormalsIntoCavity(mesh: STLMesh): void {
+  // Hole planes in the loader's Y-up mm frame after the component offset.
+  const walls = [
+    ["x", -2.54, 1],
+    ["x", 0, -1],
+    ["z", -1.27, 1],
+    ["z", 1.27, -1],
+  ] as const
+  for (const [axis, coordinate, expectedNormal] of walls) {
+    const triangles = mesh.triangles.filter(({ vertices }) =>
+      vertices.every((vertex) => Math.abs(vertex[axis] - coordinate) < 0.0001),
+    )
+    expect(triangles.length).toBeGreaterThan(0)
+    for (const { normal } of triangles) {
+      expect(normal[axis]).toBeCloseTo(expectedNormal, 8)
+      expect(normal.y).toBeCloseTo(0, 8)
+    }
+  }
+}
