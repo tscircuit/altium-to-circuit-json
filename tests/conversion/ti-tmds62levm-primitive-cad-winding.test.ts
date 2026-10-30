@@ -76,17 +76,14 @@ test("TMDS62LEVM primitive bodies face outward without a flickering PCB-plane ca
     expect(getMinimumOutwardFaceDistance(mesh)).toBeGreaterThan(0)
     if (cadComponent.layer === "top") {
       // 8.382 mm square with two 1.016 mm corner chamfers, 3.81 mm tall.
-      expect(Math.abs(getSignedMeshVolume(mesh))).toBeCloseTo(
-        (8.382 ** 2 - 1.016 ** 2) * 3.81,
+      expect(getSignedMeshVolume(mesh)).toBeCloseTo(
+        -(8.382 ** 2 - 1.016 ** 2) * 3.81,
         6,
       )
       expect(mesh.boundingBox.min.y).toBeCloseTo(0, 8)
       expect(mesh.boundingBox.max.y).toBeCloseTo(3.81, 8)
     } else {
-      expect(Math.abs(getSignedMeshVolume(mesh))).toBeCloseTo(
-        1.016 * 1.524 * 3.81,
-        6,
-      )
+      expect(getSignedMeshVolume(mesh)).toBeCloseTo(-1.016 * 1.524 * 3.81, 6)
       expect(mesh.boundingBox.min.y).toBeCloseTo(-3.81, 8)
       expect(mesh.boundingBox.max.y).toBeCloseTo(0, 8)
     }

@@ -1,7 +1,8 @@
 import type { STLMesh } from "circuit-json-to-gltf"
 
-/** Signed volume of the rendered, Y-up mm mesh. Outward faces enclose
- * positive volume; an inside-out solid encloses negative volume.
+/** Signed volume of the loader's intermediate Y-up mm mesh. loadJscadPlan
+ * swaps Y/Z without reversing triangle vertices, so correctly wound JSCAD
+ * solids yield negative volume here; inside-out solids yield positive volume.
  */
 export function getSignedMeshVolume(mesh: STLMesh): number {
   return mesh.triangles.reduce(
