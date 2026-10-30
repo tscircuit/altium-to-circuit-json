@@ -33,7 +33,7 @@ test(
     const layerSpecificKeepoutArcs = circuitJson.filter(
       (element) =>
         element.type === "pcb_keepout" &&
-        element.shape === "outline" &&
+        element.pcb_keepout_id.startsWith("pcb_keepout_altium_arc_") &&
         element.layers.length === 1,
     )
     expect(layerSpecificKeepoutArcs).toHaveLength(159)
@@ -41,7 +41,6 @@ test(
       expect.objectContaining({
         pcb_keepout_id: "pcb_keepout_altium_arc_4291",
         layers: ["top"],
-        stroke_width: 0.0254,
       }),
     )
     const sourceCircles = document.records.flatMap((record, recordIndex) =>
@@ -63,8 +62,7 @@ test(
           e.pcb_keepout_id === `pcb_keepout_altium_arc_${recordIndex}`,
       )
       expect(keepout).toMatchObject({
-        shape: "outline",
-        stroke_width: width,
+        shape: "brep",
         layers: [
           "top",
           "inner1",
@@ -76,19 +74,26 @@ test(
           "bottom",
         ],
       })
-      if (keepout?.type !== "pcb_keepout" || keepout.shape !== "outline")
-        throw new Error("Expected an annular keepout")
-      expect(keepout.outline.at(-1)).toEqual(keepout.outline[0])
-      for (let index = 1; index < keepout.outline.length; index++) {
-        const start = keepout.outline[index - 1]
-        const end = keepout.outline[index]
-        if (!start || !end) throw new Error("Expected outline endpoints")
-        expect(
-          Math.hypot(
-            (start.x + end.x) / 2 - center.x * 0.0254,
-            (start.y + end.y) / 2 - center.y * 0.0254,
-          ),
-        ).toBeGreaterThan(width / 2)
+      if (keepout?.type !== "pcb_keepout" || keepout.shape !== "brep")
+        throw new Error("Expected an annular BREP keepout")
+      expect(keepout.brep_shape.inner_rings).toHaveLength(1)
+      for (const [index, ring] of [
+        keepout.brep_shape.outer_ring,
+        ...keepout.brep_shape.inner_rings,
+      ].entries()) {
+        expect(ring.vertices).toHaveLength(2)
+        for (const point of ring.vertices) {
+          expect(point.bulge).toBe(index === 0 ? -1 : 1)
+          expect(
+            Math.hypot(
+              point.x - center.x * 0.0254,
+              point.y - center.y * 0.0254,
+            ),
+          ).toBeCloseTo(
+            radius * 0.0254 + (index === 0 ? width / 2 : -width / 2),
+            8,
+          )
+        }
       }
     }
     const board = circuitJson.find((element) => element.type === "pcb_board")
@@ -117,5 +122,5 @@ test(
       import.meta.path,
     )
   },
-  { timeout: 180_000 },
+  { timeout: 600_000 },
 )

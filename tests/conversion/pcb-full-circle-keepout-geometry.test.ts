@@ -9,12 +9,28 @@ const board =
 test("preserves full-circle holes, filled centers, layer scope and visibility", () => {
   for (const example of [
     {
+      layer: "TOP",
+      radius: 75,
+      width: 0,
+      start: 0,
+      end: 360,
+      shape: "outline",
+    },
+    {
+      layer: "MID-LAYER1",
+      radius: 10,
+      width: 40,
+      start: 0,
+      end: 360,
+      shape: "circle",
+    },
+    {
       layer: "KEEPOUT",
       radius: 75,
       width: 20,
       start: 0,
       end: 0,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -22,7 +38,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: 1,
       start: 0,
       end: 360,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -30,7 +46,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: undefined,
       start: 90,
       end: 450,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -38,7 +54,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: 20,
       start: 350,
       end: -10,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -46,7 +62,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: 20,
       start: 0,
       end: 450,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "MID-LAYER1",
@@ -54,7 +70,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: 20,
       start: 0,
       end: 450,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -62,7 +78,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: 19.99,
       start: 0,
       end: 360,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -70,7 +86,7 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       width: 20,
       start: 73.82,
       end: 73.82,
-      shape: "outline",
+      shape: "brep",
     },
     {
       layer: "KEEPOUT",
@@ -103,39 +119,27 @@ test("preserves full-circle holes, filled centers, layer scope and visibility", 
       layers:
         example.layer === "KEEPOUT"
           ? ["top", "inner1", "inner2", "bottom"]
-          : ["inner1"],
+          : [example.layer === "TOP" ? "top" : "inner1"],
     })
     if (!keepout) throw new Error("Expected a full-circle keepout")
-    if (keepout.shape === "outline") {
-      expect(keepout.stroke_width).toBeCloseTo(width, 8)
+    if (keepout.shape === "brep") {
+      expect(keepout.brep_shape.inner_rings).toHaveLength(1)
+      for (const [index, ring] of [
+        keepout.brep_shape.outer_ring,
+        ...keepout.brep_shape.inner_rings,
+      ].entries()) {
+        expect(ring.vertices).toHaveLength(2)
+        for (const point of ring.vertices) {
+          expect(point.bulge).toBe(index === 0 ? -1 : 1)
+          expect(Math.hypot(point.x - 6.35, point.y - 6.35)).toBeCloseTo(
+            radius + (index === 0 ? width / 2 : -width / 2),
+            8,
+          )
+        }
+      }
+    } else if (keepout.shape === "outline") {
+      expect(keepout.stroke_width).toBe(0)
       expect(keepout.outline.at(-1)).toEqual(keepout.outline[0])
-      expect(keepout.outline.length).toBeGreaterThan(8)
-      for (const point of keepout.outline) {
-        expect(Math.hypot(point.x - 6.35, point.y - 6.35)).toBeCloseTo(
-          radius,
-          8,
-        )
-      }
-      // Every stroked chord stays away from the center, leaving the hole open.
-      for (let index = 1; index < keepout.outline.length; index++) {
-        const start = keepout.outline[index - 1]
-        const end = keepout.outline[index]
-        if (!start || !end) throw new Error("Expected outline endpoints")
-        expect(
-          Math.hypot(
-            (start.x + end.x) / 2 - 6.35,
-            (start.y + end.y) / 2 - 6.35,
-          ),
-        ).toBeGreaterThan(width / 2)
-      }
-      for (const axis of ["x", "y"] as const) {
-        expect(
-          Math.min(...keepout.outline.map((point) => point[axis])),
-        ).toBeLessThan(6.35 - radius * 0.99)
-        expect(
-          Math.max(...keepout.outline.map((point) => point[axis])),
-        ).toBeGreaterThan(6.35 + radius * 0.99)
-      }
     } else if (keepout.shape === "circle") {
       expect(keepout.center).toEqual({ x: 6.35, y: 6.35 })
       expect(keepout.radius).toBeCloseTo(radius + width / 2, 8)

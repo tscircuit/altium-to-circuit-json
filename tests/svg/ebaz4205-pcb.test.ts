@@ -17,7 +17,7 @@ test(
         (e) =>
           e.type === "pcb_keepout" &&
           e.pcb_keepout_id.startsWith("pcb_keepout_altium_arc_") &&
-          e.shape === "outline",
+          e.shape === "brep",
       ),
     ).toHaveLength(4)
     expect(

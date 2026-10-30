@@ -28,12 +28,12 @@ test("snapshot: top-layer keepout arc is not rendered as copper", async () => {
       viewport: getPcbBoardViewport(circuitJson),
       matchBoardAspectRatio: true,
     }),
-    label: "Top-layer keepout arc preserved as a keepout outline",
+    label: "Top-layer circular keepout preserved as BREP",
   })
   await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
 })
 
-test("converts the arc to a layer-specific outline keepout", () => {
+test("converts the full-circle arc to a layer-specific BREP keepout", () => {
   const circuitJson = convertAltiumPcbDocToCircuitJson(document)
   const keepouts = circuitJson.filter(
     (element) => element.type === "pcb_keepout",
@@ -44,21 +44,27 @@ test("converts the arc to a layer-specific outline keepout", () => {
   ).toHaveLength(0)
   expect(keepouts).toHaveLength(1)
   expect(keepouts[0]).toMatchObject({
-    shape: "outline",
-    stroke_width: 0.762,
+    shape: "brep",
     layers: ["top"],
   })
   const keepout = keepouts[0]
-  if (keepout?.shape !== "outline") {
-    throw new Error("Expected an outline keepout")
+  if (keepout?.shape !== "brep") {
+    throw new Error("Expected a BREP keepout")
   }
-  expect(keepout.outline).toHaveLength(49)
-  expect(
-    keepout.outline.every(
-      (point) =>
-        Math.abs(Math.hypot(point.x - 6.35, point.y - 6.35) - 2.032) < 0.000001,
-    ),
-  ).toBe(true)
+  expect(keepout.brep_shape.inner_rings).toHaveLength(1)
+  for (const [index, ring] of [
+    keepout.brep_shape.outer_ring,
+    ...keepout.brep_shape.inner_rings,
+  ].entries()) {
+    expect(ring.vertices).toHaveLength(2)
+    for (const point of ring.vertices) {
+      expect(point.bulge).toBe(index === 0 ? -1 : 1)
+      expect(Math.hypot(point.x - 6.35, point.y - 6.35)).toBeCloseTo(
+        index === 0 ? 2.413 : 1.651,
+        8,
+      )
+    }
+  }
 
   const withoutKeepouts = convertAltiumPcbDocToCircuitJson(document, {
     includeKeepouts: false,

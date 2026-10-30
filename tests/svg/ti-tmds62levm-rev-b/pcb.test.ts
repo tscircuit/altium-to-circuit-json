@@ -31,21 +31,15 @@ test(
       circuitJson.filter(
         (element) =>
           element.type === "pcb_keepout" &&
-          element.shape === "outline" &&
+          element.pcb_keepout_id.startsWith("pcb_keepout_altium_arc_") &&
           element.layers.length === 1,
       ),
     ).toHaveLength(14)
     expect(
       circuitJson.filter(
         (element) =>
-          element.type === "pcb_keepout" && element.shape === "circle",
-      ),
-    ).toHaveLength(0)
-    expect(
-      circuitJson.filter(
-        (element) =>
           element.type === "pcb_keepout" &&
-          element.shape === "outline" &&
+          element.shape === "brep" &&
           element.layers.length > 1,
       ),
     ).toHaveLength(2)
