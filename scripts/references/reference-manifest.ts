@@ -226,6 +226,36 @@ const tiSchematicHashes: Record<string, string> = {
 export const ZIP_BUNDLES: ZipBundleSpec[] = [
   {
     archiveSha256:
+      "7ff2ca881779f51b9fcb83e041bd06125fc2cb91ba5111c8d360b9df1a651413",
+    nestedArchives: [
+      {
+        archivePath: "BeagleBoneBlackB3_Altium.zip",
+        sha256:
+          "8737e05b013c8d0df55ede8facd021bc49997e3def3591fdaf04e9928402cc58",
+        outputs: [
+          {
+            archivePath:
+              "BeagleBoneBlackB3_Altium/P03_Processor 1 of 3, JTAG Header.SchDoc",
+            filename: "beaglebone-black-processor-03.SchDoc",
+            sha256:
+              "daa49ed5a7d24a30d76ee3cde7735e6c7e617dabd5e2be12276cb86a56efb21e",
+          },
+          {
+            archivePath:
+              "BeagleBoneBlackB3_Altium/P04_Processor 2 or 3, USB and Serial.SchDoc",
+            filename: "beaglebone-black-processor-04.SchDoc",
+            sha256:
+              "bed6bf0b1054384fe1df02f79135076f7f98ba503b3aa0c6a7b548198a28edd6",
+          },
+        ],
+      },
+    ],
+    outputs: [],
+    source: "BeagleBone Black A5B Altium release",
+    url: "https://raw.githubusercontent.com/Circuitco/-BeagleBone-Black-RevA5/master/BeagleBoardBlack_RevA5_Altium.zip",
+  },
+  {
+    archiveSha256:
       "563481585d9c44e325a46da7891650d70573fa74008de68f80e7fcc9010c388f",
     nestedArchives: [],
     outputs: [
