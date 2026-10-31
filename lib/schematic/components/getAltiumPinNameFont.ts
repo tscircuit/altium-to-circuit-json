@@ -12,13 +12,13 @@ const readSchematicInteger = (
   return Number.isFinite(parsed) ? Math.round(parsed) : fallback
 }
 
-export function getAltiumPinNameFontSize({
+export function getAltiumPinNameFont({
   pin,
   sheetRecord,
 }: {
   pin: AltiumSchPinRecord
   sheetRecord: AltiumRecord | undefined
-}): number {
+}): { fontSize: number; fontFamily: string | undefined } {
   const systemFontId = readSchematicInteger(
     sheetRecord?.getCaseInsensitive("SYSTEMFONT"),
     DEFAULT_SCHEMATIC_FONT_ID,
@@ -50,5 +50,8 @@ export function getAltiumPinNameFontSize({
     sheetRecord?.getCaseInsensitive(`SIZE${fontId}`),
     DEFAULT_SCHEMATIC_FONT_SIZE,
   )
-  return selectedSize > 0 ? selectedSize : DEFAULT_SCHEMATIC_FONT_SIZE
+  return {
+    fontSize: selectedSize > 0 ? selectedSize : DEFAULT_SCHEMATIC_FONT_SIZE,
+    fontFamily: sheetRecord?.getDecoded(`FONTNAME${fontId}`),
+  }
 }
