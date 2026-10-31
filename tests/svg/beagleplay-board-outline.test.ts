@@ -20,7 +20,7 @@ test("BeaglePlay board outline from its published Altium export", async () => {
     twiceSignedArea += point.x * next.y - next.x * point.y
   }
   // An 80.00238 mm square with four 1.27 mm corner radii. The malformed
-  // diagonal loses about 49 mm² despite retaining exactly the same bounds.
+  // diagonal loses about 50 mm² despite retaining exactly the same bounds.
   const expectedArea = 80.00238 ** 2 - (4 - Math.PI) * 1.27 ** 2
   expect(Math.abs(Math.abs(twiceSignedArea) / 2 - expectedArea)).toBeLessThan(
     0.05,
