@@ -4,6 +4,7 @@ import {
   type AltiumRecord,
 } from "altiumts"
 import type { SourcePort } from "circuit-json"
+import { normalizeSourceIdentityName } from "../../project/reconciliation/normalizeSourceIdentityName"
 import { createPcbSourceComponent } from "../components/createPcbSourceComponent"
 import { getPcbComponentDesignator } from "../components/getPcbComponentDesignator"
 import { getPcbComponentId } from "../identifiers"
@@ -46,10 +47,12 @@ export function createPcbComponentContext({
       }),
     }),
   )
-  const reservedComponentNames = new Set(
-    componentsWithDesignators.map(({ baseComponentName }) => baseComponentName),
+  const reservedComponentNameKeys = new Set(
+    componentsWithDesignators.map(({ baseComponentName }) =>
+      normalizeSourceIdentityName(baseComponentName),
+    ),
   )
-  const usedComponentNames = new Set<string>()
+  const usedComponentNameKeys = new Set<string>()
 
   for (const [
     componentIndex,
@@ -70,17 +73,19 @@ export function createPcbComponentContext({
 
     const sourceComponentId = `source_component_altium_${componentIndex}`
     let componentName = baseComponentName
-    if (usedComponentNames.has(componentName)) {
+    let componentNameKey = normalizeSourceIdentityName(componentName)
+    if (usedComponentNameKeys.has(componentNameKey)) {
       let duplicateSuffix = componentIndex
       do {
         componentName = `${baseComponentName}_${duplicateSuffix}`
         duplicateSuffix += 1
+        componentNameKey = normalizeSourceIdentityName(componentName)
       } while (
-        reservedComponentNames.has(componentName) ||
-        usedComponentNames.has(componentName)
+        reservedComponentNameKeys.has(componentNameKey) ||
+        usedComponentNameKeys.has(componentNameKey)
       )
     }
-    usedComponentNames.add(componentName)
+    usedComponentNameKeys.add(componentNameKey)
     sourceComponents.push(
       createPcbSourceComponent({
         component,

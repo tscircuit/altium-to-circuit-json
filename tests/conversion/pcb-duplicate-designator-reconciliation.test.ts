@@ -5,13 +5,41 @@ import {
   convertAltiumProjectToCircuitJson,
 } from "../../lib"
 
-test.each(["component", "owned_text"])(
-  "reserves later %s designators before allocating duplicate names",
-  (designatorSource) => {
+test.each(
+  [
+    {
+      description: "an original suffixed name",
+      designators: ["U1", "U1", "U1_1"],
+      allocatedNames: ["U1", "U1_2", "U1_1"],
+    },
+    {
+      description: "a mixed-case reserved name",
+      designators: ["U1", "U1", "u1_1"],
+      allocatedNames: ["U1", "U1_2", "u1_1"],
+    },
+    {
+      description: "a mixed-case used name",
+      designators: ["U1", "u1", "U1_1"],
+      allocatedNames: ["U1", "u1_2", "U1_1"],
+    },
+    {
+      description: "mixed-case names with surrounding whitespace",
+      designators: [" U1 ", "u1", " u1_1 "],
+      allocatedNames: ["U1", "u1_2", "u1_1"],
+    },
+  ].flatMap((designatorCase) =>
+    ["component", "owned_text"].map((designatorSource) => ({
+      ...designatorCase,
+      designatorSource,
+    })),
+  ),
+)(
+  "preserves PCB identity for $description from $designatorSource",
+  ({ designatorSource, designators, allocatedNames }) => {
     const pcbDocument = parseAltiumPcbDoc(
       [
         "|RECORD=Board|KIND0=0|VX0=0mil|VY0=0mil|KIND1=0|VX1=500mil|VY1=0mil|KIND2=0|VX2=500mil|VY2=500mil|KIND3=0|VX3=0mil|VY3=500mil",
-        ...["U1", "U1", "U1_1"].flatMap((designator, componentIndex) => {
+        ...designators.flatMap((designator, componentIndex) => {
           const componentDesignator =
             designatorSource === "component"
               ? `|SOURCEDESIGNATOR=${designator}`
@@ -44,6 +72,10 @@ test.each(["component", "owned_text"])(
     )
     expect(schematicComponent).toBeDefined()
     expect(pcbComponents).toHaveLength(3)
+    expect(
+      new Set(pcbComponents.map((component) => component.source_component_id))
+        .size,
+    ).toBe(3)
     expect(pcbComponents[2]?.source_component_id).toBe(
       schematicComponent?.source_component_id,
     )
@@ -59,10 +91,11 @@ test.each(["component", "owned_text"])(
         name,
         display_name,
       })),
-    ).toEqual([
-      { name: "U1", display_name: "U1" },
-      { name: "U1_2", display_name: "U1" },
-      { name: "U1_1", display_name: "U1_1" },
-    ])
+    ).toEqual(
+      allocatedNames.map((name, componentIndex) => ({
+        name,
+        display_name: designators[componentIndex]?.trim(),
+      })),
+    )
   },
 )
