@@ -41,6 +41,7 @@ export function convertAltiumCopperAreas(
     const polygonIndex = getPcbRecordPolygonIndex(document, record)
     const linkedPolygon = document.getPolygonForRecord(record)
     if (record.regionKind === "COPPER") {
+      if (record.getBoolean("KEEPOUT") === true) continue
       if (linkedPolygon) polygonsWithCopperRegions.add(linkedPolygon)
     } else if (record.regionKind === "POLYGON_CUTOUT") {
       const cutoutGeometry = getPcbRegionGeometry(record)
@@ -76,6 +77,7 @@ export function convertAltiumCopperAreas(
   )
 
   return document.records.flatMap((record, recordIndex) => {
+    if (record.getBoolean("KEEPOUT") === true) return []
     if (record instanceof AltiumRegionRecord) {
       return convertCopperRegion({
         layerMap,
