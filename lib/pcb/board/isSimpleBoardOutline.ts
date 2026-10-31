@@ -1,10 +1,19 @@
 import { doesLineIntersectLine } from "@tscircuit/math-utils"
 import type { AltiumPoint } from "altiumts"
-import { removeClosingPoint } from "../geometry"
+import { pointsApproximatelyEqual, removeClosingPoint } from "../geometry"
 
 export function isSimpleBoardOutline(outline: AltiumPoint[]): boolean {
+  const distinctPoints = outline.filter(
+    (point, index) =>
+      index === 0 ||
+      !pointsApproximatelyEqual({
+        left: outline[index - 1]!,
+        right: point,
+        maxEndpointGapMils: 0.0001,
+      }),
+  )
   const points = removeClosingPoint({
-    points: outline,
+    points: distinctPoints,
     maxEndpointGapMils: 0.0001,
   })
   if (points.length < 3) return false
