@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { parseAltiumPcbDoc, serializeAltiumPcbToSvg } from "altiumts"
-import type { PCBKeepoutCircle } from "circuit-json"
+import type { PcbKeepoutBrep } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { convertAltiumPcbDocToCircuitJson } from "../../lib"
 import { stackAltiumAndCircuitJsonSvgs } from "../helpers/stack-svg-comparison"
@@ -12,18 +12,23 @@ const circularKeepoutPcbDoc = parseAltiumPcbDoc(
   ].join("\n"),
 )
 
-test("imports full-circle Altium keepout arcs", async () => {
+test("preserves the empty center of full-circle Altium keepout arcs", async () => {
   const circuitJson = convertAltiumPcbDocToCircuitJson(circularKeepoutPcbDoc)
   const keepout = circuitJson.find(
-    (element): element is PCBKeepoutCircle => element.type === "pcb_keepout",
+    (element): element is PcbKeepoutBrep =>
+      element.type === "pcb_keepout" && element.shape === "brep",
   )
 
   expect(keepout).toMatchObject({
-    shape: "circle",
-    center: { x: 6.35, y: 6.35 },
-    radius: 2.159,
+    shape: "brep",
     layers: ["top", "bottom"],
   })
+  if (!keepout) throw new Error("Expected an annular keepout")
+  expect(keepout.brep_shape.inner_rings).toHaveLength(1)
+  expect(keepout.brep_shape.outer_ring.vertices).toEqual([
+    { x: 8.509, y: 6.35, bulge: -1 },
+    { x: 4.191, y: 6.35, bulge: -1 },
+  ])
   expect(
     convertAltiumPcbDocToCircuitJson(circularKeepoutPcbDoc, {
       includeKeepouts: false,
@@ -33,7 +38,7 @@ test("imports full-circle Altium keepout arcs", async () => {
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
     altiumSvg: serializeAltiumPcbToSvg(circularKeepoutPcbDoc),
     circuitJsonSvg: convertCircuitJsonToPcbSvg(circuitJson),
-    label: "Circular PCB keepout",
+    label: "Annular PCB keepout preserves its empty center",
   })
   await expect(comparisonSvg).toMatchSvgSnapshot(import.meta.path)
 })

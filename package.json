@@ -49,7 +49,7 @@
   "dependencies": {
     "@tscircuit/math-utils": "^0.0.9",
     "altiumts": "github:tscircuit/altiumts#8db22cf449c7bf6584a968b4913be4e1bd4a93ad",
-    "circuit-json": "0.0.486",
+    "circuit-json": "https://pkg.pr.new/circuit-json@b2eeece",
     "format-si-unit": "^0.0.11",
     "polygon-clipping": "^0.15.7",
     "schematic-symbols": "^0.0.238",
@@ -67,7 +67,7 @@
     "bun-match-svg": "^0.0.15",
     "circuit-json-to-connectivity-map": "^0.0.25",
     "circuit-json-to-gltf": "0.0.145",
-    "circuit-to-svg": "^0.0.436",
+    "circuit-to-svg": "https://pkg.pr.new/circuit-to-svg@086b6ff",
     "circuit-to-svg-schematic-graphics": "npm:circuit-to-svg@0.0.436",
     "fflate": "^0.8.3",
     "poppygl": "0.0.33",

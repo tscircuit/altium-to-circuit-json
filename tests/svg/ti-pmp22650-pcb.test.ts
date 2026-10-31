@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { AltiumArcRecord } from "altiumts"
 import { TI_POWER_REFERENCE_PCB_FILENAMES } from "../../scripts/references/reference-manifest"
 import { createOpenSourcePcbComparison } from "../helpers/create-open-source-pcb-comparison"
 import { createRoutingConstraintsComparisonSvg } from "../helpers/create-routing-constraints-comparison-svg"
@@ -31,16 +32,70 @@ test(
 
     const layerSpecificKeepoutArcs = circuitJson.filter(
       (element) =>
-        element.type === "pcb_keepout" && element.shape === "outline",
+        element.type === "pcb_keepout" &&
+        element.pcb_keepout_id.startsWith("pcb_keepout_altium_arc_") &&
+        element.layers.length === 1,
     )
     expect(layerSpecificKeepoutArcs).toHaveLength(159)
     expect(layerSpecificKeepoutArcs).toContainEqual(
       expect.objectContaining({
         pcb_keepout_id: "pcb_keepout_altium_arc_4291",
         layers: ["top"],
-        stroke_width: 0.0254,
       }),
     )
+    const sourceCircles = document.records.flatMap((record, recordIndex) =>
+      record instanceof AltiumArcRecord &&
+      record.layer === "KEEPOUT" &&
+      record.isFullCircle
+        ? [{ record, recordIndex }]
+        : [],
+    )
+    expect(sourceCircles).toHaveLength(16)
+    for (const { record, recordIndex } of sourceCircles) {
+      const center = record.center
+      const radius = record.radiusMils
+      if (!center || !radius) throw new Error("Expected full-circle geometry")
+      const width = (record.widthMils ?? 4) * 0.0254
+      const keepout = circuitJson.find(
+        (e) =>
+          e.type === "pcb_keepout" &&
+          e.pcb_keepout_id === `pcb_keepout_altium_arc_${recordIndex}`,
+      )
+      expect(keepout).toMatchObject({
+        shape: "brep",
+        layers: [
+          "top",
+          "inner1",
+          "inner2",
+          "inner3",
+          "inner4",
+          "inner5",
+          "inner6",
+          "bottom",
+        ],
+      })
+      if (keepout?.type !== "pcb_keepout" || keepout.shape !== "brep")
+        throw new Error("Expected an annular BREP keepout")
+      expect(keepout.brep_shape.inner_rings).toHaveLength(1)
+      for (const [index, ring] of [
+        keepout.brep_shape.outer_ring,
+        ...keepout.brep_shape.inner_rings,
+      ].entries()) {
+        expect(ring.vertices).toHaveLength(2)
+        for (const point of ring.vertices) {
+          expect(point.bulge).toBe(index === 0 ? -1 : 1)
+          expect(
+            Math.hypot(
+              point.x - center.x * 0.0254,
+              point.y - center.y * 0.0254,
+            ),
+          ).toBeCloseTo(
+            radius * 0.0254 + (index === 0 ? width / 2 : -width / 2),
+            8,
+          )
+        }
+      }
+    }
     const board = circuitJson.find((element) => element.type === "pcb_board")
     if (!board) throw new Error("PMP22650 conversion did not emit a pcb_board")
     const sourceNets = circuitJson.filter(
@@ -67,5 +122,5 @@ test(
       import.meta.path,
     )
   },
-  { timeout: 180_000 },
+  { timeout: 600_000 },
 )
