@@ -11,7 +11,16 @@ test("does not infer a board from open, mismatched or ambiguous mechanical paths
     // Removing a corner leaves an open path.
     [board, ...mechanicalRecords.slice(0, -1)].join("\n"),
     // An assembly envelope with different extents cannot replace the board.
-    source.replaceAll("-13003mil", "-13103mil"),
+    [
+      board,
+      ...mechanicalRecords.map((record) =>
+        record.replace(
+          /((?:LOCATION\.X|X1|X2)=)(-?[\d.]+)mil/gu,
+          (_, field: string, coordinate: string) =>
+            `${field}${Number(coordinate) + 100}mil`,
+        ),
+      ),
+    ].join("\n"),
     // Two matching drawing layers are ambiguous, even at the same extents.
     [
       source,
