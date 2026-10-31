@@ -54,6 +54,7 @@ export interface PcbComponentContext {
 export interface PcbRoutingConstraints {
   pcbBoard: Pick<
     PcbBoard,
+    | "clearance_rules"
     | "allow_blind_and_buried_vias"
     | "is_via_in_pad_allowed"
     | "min_trace_width"

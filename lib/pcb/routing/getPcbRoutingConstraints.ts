@@ -1,3 +1,4 @@
+import { getPcbClearanceRules } from "./getPcbClearanceRules"
 import { type AltiumPcbDocument, AltiumViaRecord } from "altiumts"
 import { milsToMillimeters } from "../geometry"
 import type { PcbCopperLayerMap } from "../layers"
@@ -26,7 +27,10 @@ export function getPcbRoutingConstraints({
     routingViasRule?.viaHoleConstraint?.minimumMils
   const minimumViaPadDiameterMils =
     routingViasRule?.viaDiameterConstraint?.minimumMils
-  const pcbBoard: PcbRoutingConstraints["pcbBoard"] = {}
+  const clearanceRules = getPcbClearanceRules({ document, layerMap })
+  const pcbBoard: PcbRoutingConstraints["pcbBoard"] = clearanceRules.length
+    ? { clearance_rules: clearanceRules }
+    : {}
   const routingConstraints: PcbRoutingConstraints = { pcbBoard }
 
   const hasBlindOrBuriedVia = document.records.some(
