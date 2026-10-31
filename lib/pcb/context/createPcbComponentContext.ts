@@ -5,6 +5,7 @@ import {
 } from "altiumts"
 import type { SourcePort } from "circuit-json"
 import { createPcbSourceComponent } from "../components/createPcbSourceComponent"
+import { getPcbComponentDesignator } from "../components/getPcbComponentDesignator"
 import { getPcbComponentId } from "../identifiers"
 import type { PcbCopperLayerMap } from "../layers"
 import type { PcbComponentContext } from "../model"
@@ -35,8 +36,25 @@ export function createPcbComponentContext({
   const ownedPads = new Set<AltiumPadRecord>()
   const sourceComponents: PcbComponentContext["sourceComponents"] = []
   const sourcePorts: SourcePort[] = []
+  const componentsWithDesignators = document.components.map(
+    (component, componentIndex) => ({
+      component,
+      baseComponentName: getPcbComponentDesignator({
+        component,
+        componentIndex,
+        document,
+      }),
+    }),
+  )
+  const reservedComponentNames = new Set(
+    componentsWithDesignators.map(({ baseComponentName }) => baseComponentName),
+  )
+  const usedComponentNames = new Set<string>()
 
-  for (const [componentIndex, component] of document.components.entries()) {
+  for (const [
+    componentIndex,
+    { component, baseComponentName },
+  ] of componentsWithDesignators.entries()) {
     const logicalPins: LogicalPcbPin[] = []
     for (const record of document.getRecordsOwnedByComponent(component)) {
       if (!(record instanceof AltiumPadRecord)) continue
@@ -51,8 +69,25 @@ export function createPcbComponentContext({
     }
 
     const sourceComponentId = `source_component_altium_${componentIndex}`
+    let componentName = baseComponentName
+    if (usedComponentNames.has(componentName)) {
+      let duplicateSuffix = componentIndex
+      do {
+        componentName = `${baseComponentName}_${duplicateSuffix}`
+        duplicateSuffix += 1
+      } while (
+        reservedComponentNames.has(componentName) ||
+        usedComponentNames.has(componentName)
+      )
+    }
+    usedComponentNames.add(componentName)
     sourceComponents.push(
-      createPcbSourceComponent({ component, componentIndex }),
+      createPcbSourceComponent({
+        component,
+        componentName,
+        componentIndex,
+        displayDesignator: baseComponentName,
+      }),
     )
     if (!includePorts) continue
 
