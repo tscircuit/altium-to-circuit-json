@@ -44,17 +44,21 @@ export async function createBeagleboneProcessorFontComparison({
   const ports = processorCircuitJson.filter(
     (element) => element.type === "schematic_port",
   )
+  const circuitJsonSvg = convertCircuitJsonToSchematicSvg(
+    processorCircuitJson,
+    {
+      width: 1000,
+      height: 800,
+    },
+  )
   const comparisonSvg = stackAltiumAndCircuitJsonSvgs({
     altiumSvg: serializeAltiumSheetToSvg(document, {
       viewBox: sourceViewBox,
       width: 1000,
       height: 800,
     }),
-    circuitJsonSvg: convertCircuitJsonToSchematicSvg(processorCircuitJson, {
-      width: 1000,
-      height: 800,
-    }),
+    circuitJsonSvg,
     label: `BeagleBone Black processor sheet ${sheet}`,
   })
-  return { ports, comparisonSvg }
+  return { ports, comparisonSvg, circuitJsonSvg }
 }
