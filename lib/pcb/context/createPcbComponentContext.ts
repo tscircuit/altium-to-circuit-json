@@ -36,9 +36,25 @@ export function createPcbComponentContext({
   const ownedPads = new Set<AltiumPadRecord>()
   const sourceComponents: PcbComponentContext["sourceComponents"] = []
   const sourcePorts: SourcePort[] = []
+  const componentsWithDesignators = document.components.map(
+    (component, componentIndex) => ({
+      component,
+      baseComponentName: getPcbComponentDesignator({
+        component,
+        componentIndex,
+        document,
+      }),
+    }),
+  )
+  const reservedComponentNames = new Set(
+    componentsWithDesignators.map(({ baseComponentName }) => baseComponentName),
+  )
   const usedComponentNames = new Set<string>()
 
-  for (const [componentIndex, component] of document.components.entries()) {
+  for (const [
+    componentIndex,
+    { component, baseComponentName },
+  ] of componentsWithDesignators.entries()) {
     const logicalPins: LogicalPcbPin[] = []
     for (const record of document.getRecordsOwnedByComponent(component)) {
       if (!(record instanceof AltiumPadRecord)) continue
@@ -53,16 +69,16 @@ export function createPcbComponentContext({
     }
 
     const sourceComponentId = `source_component_altium_${componentIndex}`
-    const baseComponentName = getPcbComponentDesignator({
-      component,
-      componentIndex,
-      document,
-    })
     let componentName = baseComponentName
-    let duplicateSuffix = componentIndex
-    while (usedComponentNames.has(componentName)) {
-      componentName = `${baseComponentName}_${duplicateSuffix}`
-      duplicateSuffix += 1
+    if (usedComponentNames.has(componentName)) {
+      let duplicateSuffix = componentIndex
+      do {
+        componentName = `${baseComponentName}_${duplicateSuffix}`
+        duplicateSuffix += 1
+      } while (
+        reservedComponentNames.has(componentName) ||
+        usedComponentNames.has(componentName)
+      )
     }
     usedComponentNames.add(componentName)
     sourceComponents.push(
