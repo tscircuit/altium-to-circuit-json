@@ -1,16 +1,13 @@
-import {
-  type AltiumPcbDocument,
-  type AltiumPcbLayerStackEntry,
-  getPcbLayerStack,
-} from "altiumts"
+import { type AltiumPcbDocument, type AltiumPcbLayerStackEntry } from "altiumts"
 import { getCopperLayerIdentity } from "./getCopperLayerIdentity"
 import { getCopperStackEntryKeys } from "./getCopperStackEntryKeys"
+import { getLayerStackEntriesWithLegacyFallback } from "./getLayerStackEntriesWithLegacyFallback"
 
 export function getOrderedCopperStackEntries(
   document: AltiumPcbDocument,
 ): AltiumPcbLayerStackEntry[] {
   if (!document.board) return []
-  const entries = getPcbLayerStack(document.board).entries
+  const entries = getLayerStackEntriesWithLegacyFallback(document.board)
   for (const source of ["v8", "v7", "legacy"] as const) {
     const copper = entries.filter((entry) => {
       if (entry.source !== source) return false
