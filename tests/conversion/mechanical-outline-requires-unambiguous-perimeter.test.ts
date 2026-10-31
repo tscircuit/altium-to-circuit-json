@@ -13,13 +13,10 @@ test("does not infer a board from open, mismatched or ambiguous mechanical paths
     // An assembly envelope with different extents cannot replace the board.
     [
       board,
-      ...mechanicalRecords.map((record) =>
-        record.replace(
-          /((?:LOCATION\.X|X1|X2)=)(-?[\d.]+)mil/gu,
-          (_, field: string, coordinate: string) =>
-            `${field}${Number(coordinate) + 100}mil`,
-        ),
-      ),
+      "|RECORD=Track|LAYER=MECHANICAL1|X1=-13000mil|Y1=9200mil|X2=-9800mil|Y2=9200mil",
+      "|RECORD=Track|LAYER=MECHANICAL1|X1=-9800mil|Y1=9200mil|X2=-9800mil|Y2=12400mil",
+      "|RECORD=Track|LAYER=MECHANICAL1|X1=-9800mil|Y1=12400mil|X2=-13000mil|Y2=12400mil",
+      "|RECORD=Track|LAYER=MECHANICAL1|X1=-13000mil|Y1=12400mil|X2=-13000mil|Y2=9200mil",
     ].join("\n"),
     // Two matching drawing layers are ambiguous, even at the same extents.
     [
