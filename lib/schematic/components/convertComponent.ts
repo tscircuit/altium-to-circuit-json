@@ -7,6 +7,7 @@ import { convertComponentPin } from "./convertComponentPin"
 import { convertPinlessComponent } from "./convertPinlessComponent"
 import { createComponentPinEdgeElements } from "./createComponentPinEdgeElements"
 import { createSourceComponent } from "./createSourceComponent"
+import { fitBoxPinLabels } from "./fitBoxPinLabels"
 import { getComponentBodyBounds } from "./getComponentBodyBounds"
 import { getComponentIdentity } from "./getComponentIdentity"
 import { getComponentSize } from "./getComponentSize"
@@ -94,6 +95,9 @@ export function convertComponent(
   })
   if (symbolSelection) {
     applyNativeSymbolPortGeometry({ center, selection: symbolSelection })
+  }
+  if (!symbolSelection && !ownedComponentBody) {
+    fitBoxPinLabels({ componentPorts, size }, context)
   }
   const pinEdgeElements = singleInputGateBody
     ? []

@@ -8,7 +8,7 @@ import {
 import { getLocation, scaleLength, scalePoint } from "../geometry"
 import { uniqueStrings } from "../identifiers"
 import type { ConvertedPort, SemanticSchematicOptions } from "../model"
-import { getAltiumPinNameFontSize } from "./getAltiumPinNameFontSize"
+import { getAltiumPinNameFont } from "./getAltiumPinNameFont"
 import { parseAltiumPinLabel } from "./parseAltiumPinLabel"
 import { parsePinNumber } from "./parsePinNumber"
 
@@ -68,16 +68,14 @@ export function convertComponentPin({
     (pinConglomerate & 0x08) !== 0 ||
     visibleSymbolLabels.has(normalizedName) ||
     visibleSymbolLabels.has(functionalName)
+  const { fontSize } = getAltiumPinNameFont({ pin, sheetRecord })
   const schematicPort: SchematicPort = {
     type: "schematic_port",
     center: scalePoint(terminalPoint, options.scale),
     ...(showName && name
       ? {
           display_pin_label: parsedPinLabel.displayText,
-          display_pin_label_font_size: scaleLength(
-            getAltiumPinNameFontSize({ pin, sheetRecord }),
-            options.scale,
-          ),
+          display_pin_label_font_size: scaleLength(fontSize, options.scale),
           ...(parsedPinLabel.textParts
             ? { display_pin_label_text_parts: parsedPinLabel.textParts }
             : {}),
