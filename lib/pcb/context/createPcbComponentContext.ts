@@ -4,7 +4,9 @@ import {
   type AltiumRecord,
 } from "altiumts"
 import type { SourcePort } from "circuit-json"
+import { normalizeSourceIdentityName } from "../../project/reconciliation/normalizeSourceIdentityName"
 import { createPcbSourceComponent } from "../components/createPcbSourceComponent"
+import { getPcbComponentDesignator } from "../components/getPcbComponentDesignator"
 import { getPcbComponentId } from "../identifiers"
 import type { PcbCopperLayerMap } from "../layers"
 import type { PcbComponentContext } from "../model"
@@ -35,8 +37,27 @@ export function createPcbComponentContext({
   const ownedPads = new Set<AltiumPadRecord>()
   const sourceComponents: PcbComponentContext["sourceComponents"] = []
   const sourcePorts: SourcePort[] = []
+  const componentsWithDesignators = document.components.map(
+    (component, componentIndex) => ({
+      component,
+      baseComponentName: getPcbComponentDesignator({
+        component,
+        componentIndex,
+        document,
+      }),
+    }),
+  )
+  const reservedComponentNameKeys = new Set(
+    componentsWithDesignators.map(({ baseComponentName }) =>
+      normalizeSourceIdentityName(baseComponentName),
+    ),
+  )
+  const usedComponentNameKeys = new Set<string>()
 
-  for (const [componentIndex, component] of document.components.entries()) {
+  for (const [
+    componentIndex,
+    { component, baseComponentName },
+  ] of componentsWithDesignators.entries()) {
     const logicalPins: LogicalPcbPin[] = []
     for (const record of document.getRecordsOwnedByComponent(component)) {
       if (!(record instanceof AltiumPadRecord)) continue
@@ -51,8 +72,27 @@ export function createPcbComponentContext({
     }
 
     const sourceComponentId = `source_component_altium_${componentIndex}`
+    let componentName = baseComponentName
+    let componentNameKey = normalizeSourceIdentityName(componentName)
+    if (usedComponentNameKeys.has(componentNameKey)) {
+      let duplicateSuffix = componentIndex
+      do {
+        componentName = `${baseComponentName}_${duplicateSuffix}`
+        duplicateSuffix += 1
+        componentNameKey = normalizeSourceIdentityName(componentName)
+      } while (
+        reservedComponentNameKeys.has(componentNameKey) ||
+        usedComponentNameKeys.has(componentNameKey)
+      )
+    }
+    usedComponentNameKeys.add(componentNameKey)
     sourceComponents.push(
-      createPcbSourceComponent({ component, componentIndex }),
+      createPcbSourceComponent({
+        component,
+        componentName,
+        componentIndex,
+        displayDesignator: baseComponentName,
+      }),
     )
     if (!includePorts) continue
 
