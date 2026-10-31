@@ -11,6 +11,8 @@ import { isMechanicalLayer } from "../layers"
 import { boundsContainWithTolerance } from "./boundsContainWithTolerance"
 import { MAX_ENDPOINT_GAP_MILS } from "./constants"
 import { getArcPoints } from "./getArcPoints"
+import { getConnectedOutlinePathGroups } from "./getConnectedOutlinePathGroups"
+import { hasBranchingOutlinePaths } from "./hasBranchingOutlinePaths"
 import { isClosedPath } from "./isClosedPath"
 import { isSimpleBoardOutline } from "./isSimpleBoardOutline"
 
@@ -64,7 +66,33 @@ export function getMatchingMechanicalBoardOutline({
   }
 
   const candidates: AltiumPoint[][] = []
-  for (const paths of pathsByLayer.values()) {
+  const pathGroups = [...pathsByLayer.values()].flatMap((paths) =>
+    getConnectedOutlinePathGroups({
+      paths,
+      maxEndpointGapMils: MAX_ENDPOINT_GAP_MILS,
+    }),
+  )
+  for (const paths of pathGroups) {
+    // Internal fabrication drawings may branch. Only groups spanning the
+    // declared board bounds can compete as perimeter candidates.
+    const groupBounds = getAltiumBounds(paths.flat())
+    if (
+      !groupBounds ||
+      !boundsContainWithTolerance({
+        container: groupBounds,
+        contained: declaredBounds,
+        tolerance: MAX_ENDPOINT_GAP_MILS,
+      })
+    )
+      continue
+    // Check before stitching consumes shared paths and hides competing loops.
+    if (
+      hasBranchingOutlinePaths({
+        paths,
+        maxEndpointGapMils: MAX_ENDPOINT_GAP_MILS,
+      })
+    )
+      return undefined
     for (const path of stitchConnectedAltiumPaths({
       paths,
       maxEndpointGapMils: MAX_ENDPOINT_GAP_MILS,
