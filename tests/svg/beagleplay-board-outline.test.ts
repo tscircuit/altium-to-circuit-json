@@ -18,6 +18,7 @@ test("BeaglePlay board outline from its published Altium export", async () => {
     convertCircuitJsonToPcbSvg(circuitJson, {
       width: 800,
       height: 800,
+      showSolderMask: true,
     }),
   ).toMatchSvgSnapshot(import.meta.path)
 })
