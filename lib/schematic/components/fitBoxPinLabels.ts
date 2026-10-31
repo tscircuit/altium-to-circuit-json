@@ -41,6 +41,7 @@ export function fitBoxPinLabels(
         schematicPort,
         label,
         fontSize,
+        fontSizeRatio: 1,
         isSubstitutedFont: Boolean(
           fontFamily &&
             !/^(?:arial|helvetica|sans-serif)$/iu.test(fontFamily.trim()),
@@ -49,8 +50,8 @@ export function fitBoxPinLabels(
     ]
   })
   if (!labels.some(({ isSubstitutedFont }) => isSubstitutedFont)) return
-  let fontSizeRatio = 1
-  for (const { schematicPort, label, fontSize, isSubstitutedFont } of labels) {
+  for (const currentLabel of labels) {
+    const { schematicPort, label, fontSize, isSubstitutedFont } = currentLabel
     const side = schematicPort.side_of_component
     if (side !== "left" && side !== "bottom") continue
     const isHorizontal = side === "left"
@@ -77,15 +78,18 @@ export function fitBoxPinLabels(
       const rowWidth = labelWidth + oppositeWidth
       if (rowWidth <= availableWidth) continue
       const labelGap = Math.max(fontSize, opposite.fontSize)
-      fontSizeRatio = Math.min(
+      const fontSizeRatio = availableWidth / (rowWidth + labelGap)
+      currentLabel.fontSizeRatio = Math.min(
+        currentLabel.fontSizeRatio,
         fontSizeRatio,
-        availableWidth / (rowWidth + labelGap),
       )
+      opposite.fontSizeRatio = Math.min(opposite.fontSizeRatio, fontSizeRatio)
     }
   }
-  if (fontSizeRatio >= 1) return
-  // Apply one ratio to the unit so custom pin fonts retain their relative sizes.
-  for (const { schematicPort, fontSize } of labels) {
+  // Fit only colliding pairs, retaining their relative font sizes and leaving
+  // labels on other rows at their authored sizes.
+  for (const { schematicPort, fontSize, fontSizeRatio } of labels) {
+    if (fontSizeRatio >= 1) continue
     schematicPort.display_pin_label_font_size = fontSize * fontSizeRatio
   }
 }
