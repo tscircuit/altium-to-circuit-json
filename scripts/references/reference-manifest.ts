@@ -79,6 +79,13 @@ export const TI_EVM_REFERENCE_FILENAMES = {
 
 export const DIRECT_REFERENCES: DirectReferenceSpec[] = [
   {
+    filename: "bw0253.PcbDoc",
+    sha256: "74b97c6bb046f36ff03339e3e5b7d8950fb30d1585eb6a2208bd9b08db3a4483",
+    source:
+      "luxonis/oak-hardware@7d569e3ccdff30014a498dc6c64a2e0dcad6964c (MIT)",
+    url: "https://raw.githubusercontent.com/luxonis/oak-hardware/7d569e3ccdff30014a498dc6c64a2e0dcad6964c/BW0253_R0M0E0_RPIHQ_ADAPTER/PCB/BW0253.PcbDoc",
+  },
+  {
     filename: "ch582.PcbDoc",
     sha256: "dcf82249e19f9a58f3874e9c56509bab42f3fdf00dc3dd0d52ba9a4f4aeb0649",
     source:
