@@ -45,6 +45,18 @@ try {
   })
   await runCommand(["bun", "install", "--ignore-scripts"], buildDirectory)
   await runCommand(["bun", "run", "build"], buildDirectory)
+  const installedAltiumDist = join(
+    sourceDirectory,
+    "node_modules",
+    "altiumts",
+    "dist",
+  )
+  await rm(installedAltiumDist, { force: true, recursive: true })
+  await cp(
+    join(buildDirectory, "node_modules", "altiumts", "dist"),
+    installedAltiumDist,
+    { recursive: true },
+  )
   await rm(join(sourceDirectory, "dist"), { force: true, recursive: true })
   await cp(join(buildDirectory, "dist"), join(sourceDirectory, "dist"), {
     recursive: true,
