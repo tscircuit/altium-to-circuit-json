@@ -17,8 +17,17 @@ const courtyardRecords = [
 
 const courtyardPcbDoc = parseAltiumPcbDoc(courtyardRecords.join("\n"))
 
-test("repro: Mechanical 15/16 courtyards are missing from Circuit JSON", async () => {
+test("Mechanical 15/16 courtyard outlines are preserved", async () => {
   const circuitJson = convertAltiumPcbDocToCircuitJson(courtyardPcbDoc)
+  const courtyards = circuitJson.filter(
+    (element) => element.type === "pcb_courtyard_outline",
+  )
+  expect(courtyards).toHaveLength(3)
+  expect(courtyards.map((courtyard) => courtyard.layer)).toEqual([
+    "top",
+    "top",
+    "bottom",
+  ])
   const altiumSvg = serializeAltiumPcbToSvg(courtyardPcbDoc, {
     height: 800,
     title: "Altium courtyard source",
