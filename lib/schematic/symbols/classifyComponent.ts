@@ -36,7 +36,19 @@ export function classifyComponent({
     return "capacitor"
   }
   if (prefix === "L" || lowerReference.includes("inductor")) return "inductor"
-  if (prefix === "D" || lowerReference.includes("diode")) {
+  if (
+    prefix === "F" ||
+    lowerReference.includes("fuse") ||
+    (description ?? "").toLowerCase().includes("fuse")
+  ) {
+    return "fuse"
+  }
+  if (
+    prefix === "D" ||
+    prefix === "ZD" ||
+    prefix === "TVS" ||
+    lowerReference.includes("diode")
+  ) {
     const [firstWord, secondWord, thirdWord] = (description ?? "")
       .trim()
       .toLowerCase()
