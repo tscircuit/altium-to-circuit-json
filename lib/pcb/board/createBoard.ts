@@ -3,6 +3,7 @@ import type { PcbBoard } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import type { PcbCopperLayerMap } from "../layers"
 import { BOARD_ID, type PcbRoutingConstraints } from "../model"
+import { getBoardThicknessMillimeters } from "./getBoardThicknessMillimeters"
 import { getFallbackPcbBounds } from "./getFallbackPcbBounds"
 import { getPreferredPcbBoardOutline } from "./getPreferredPcbBoardOutline"
 
@@ -32,7 +33,7 @@ export function createBoard({
     width,
     height,
     ...(outline.length >= 3 ? { shape: "polygon" as const, outline } : {}),
-    thickness: 1.6,
+    thickness: getBoardThicknessMillimeters(document) ?? 1.6,
     num_layers: layerMap.layers.length,
     material: "fr4",
     ...routingConstraints.pcbBoard,
