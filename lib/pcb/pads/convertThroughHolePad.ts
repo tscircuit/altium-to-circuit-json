@@ -20,13 +20,17 @@ export function convertThroughHolePad(
     height,
     holeDiameter,
     id,
+    layerMap,
     shape,
     width,
     x,
     y,
   } = options
   const holeOffset = getRotatedHoleOffset(geometry)
-  const layers: LayerRef[] = ["top", "bottom"]
+  const layers: LayerRef[] =
+    layerMap && layerMap.layers.length > 0
+      ? [...layerMap.layers]
+      : ["top", "bottom"]
 
   if (isRectangularShape(shape)) {
     return {

@@ -77,6 +77,12 @@ export function convertAltiumCopperAreas(
   const polygonIndexes = new Map(
     document.polygons.map((polygon, index) => [polygon, index]),
   )
+  const resolveSourceNetId = (record: AltiumRecord): string | undefined => {
+    const directNetId = getSourceNetId(record)
+    if (directNetId) return directNetId
+    const owningPolygon = document.getPolygonForRecord(record)
+    return owningPolygon ? getSourceNetId(owningPolygon) : undefined
+  }
 
   return document.records.flatMap((record, recordIndex) => {
     if (record.getBoolean("KEEPOUT") === true) return []
@@ -93,7 +99,7 @@ export function convertAltiumCopperAreas(
         layerMap,
         record,
         recordIndex,
-        sourceNetId: getSourceNetId(record),
+        sourceNetId: resolveSourceNetId(record),
       })
     }
     if (record instanceof AltiumPolygonRecord) {
@@ -118,7 +124,7 @@ export function convertAltiumCopperAreas(
         layerMap,
         record,
         recordIndex,
-        sourceNetId: getSourceNetId(record),
+        sourceNetId: resolveSourceNetId(record),
       })
     }
     return []

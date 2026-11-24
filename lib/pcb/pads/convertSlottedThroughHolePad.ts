@@ -10,6 +10,7 @@ export function convertSlottedThroughHolePad({
   geometry,
   height,
   id,
+  layerMap,
   shape,
   width,
   x,
@@ -23,7 +24,10 @@ export function convertSlottedThroughHolePad({
   const holeWidth = milsToMillimeters(
     Math.max(geometry.slotLengthMils, geometry.holeSizeMils, 1),
   )
-  const layers: LayerRef[] = ["top", "bottom"]
+  const layers: LayerRef[] =
+    layerMap && layerMap.layers.length > 0
+      ? [...layerMap.layers]
+      : ["top", "bottom"]
 
   const isRectangularPad = isRectangularShape(shape)
   const isAlignedCenteredSlot =
