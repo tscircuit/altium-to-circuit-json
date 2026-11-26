@@ -6,7 +6,7 @@ import { convertAltiumSchDocToCircuitJson } from "../../lib"
 import { TI_TMDS62LEVM_FIXTURE_NAME } from "../../scripts/references/reference-manifest"
 import { readReferenceBytes } from "../helpers/read-reference"
 
-test.failing("inline Altium net labels render as schematic text", () => {
+test("inline Altium net labels render as schematic text", () => {
   const document = parseAltiumSchDoc(
     [
       "|RECORD=31|CUSTOMX=100|CUSTOMY=100|SIZE1=10|FONTNAME1=Arial",
@@ -68,7 +68,7 @@ test.failing("inline Altium net labels render as schematic text", () => {
   ).toBe(true)
 })
 
-test.failing("inline net labels follow the Altium text orientation", () => {
+test("inline net labels follow the Altium text orientation", () => {
   const document = parseAltiumSchDoc(
     [
       "|RECORD=31|CUSTOMX=120|CUSTOMY=120|SIZE1=10|FONTNAME1=Arial",
@@ -158,7 +158,7 @@ test("anchored Altium ports face away from their wired end", () => {
   })
 })
 
-test.failing("sheet 12 preserves inline and anchored Altium labels independently", async () => {
+test("sheet 12 preserves inline and anchored Altium labels independently", async () => {
   const source = await readReferenceBytes(
     `${TI_TMDS62LEVM_FIXTURE_NAME}/12.SchDoc`,
   )

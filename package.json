@@ -46,7 +46,7 @@
   "dependencies": {
     "@tscircuit/math-utils": "^0.0.9",
     "altiumts": "0.0.95",
-    "circuit-json": "0.0.486",
+    "circuit-json": "0.0.562",
     "format-si-unit": "^0.0.11",
     "polygon-clipping": "^0.15.7",
     "schematic-symbols": "^0.0.238",
@@ -65,7 +65,7 @@
     "circuit-json-to-connectivity-map": "^0.0.25",
     "circuit-json-to-gltf": "0.0.145",
     "circuit-to-svg": "^0.0.436",
-    "circuit-to-svg-schematic-graphics": "npm:circuit-to-svg@0.0.436",
+    "circuit-to-svg-schematic-graphics": "github:tscircuit/circuit-to-svg#4b7923b413064167df91294152651328c64ce396",
     "fflate": "^0.8.3",
     "poppygl": "0.0.33",
     "react": "^19.2.0",
@@ -83,5 +83,6 @@
   },
   "overrides": {
     "sharp": "^0.35.3"
-  }
+  },
+  "trustedDependencies": ["circuit-to-svg-schematic-graphics"]
 }

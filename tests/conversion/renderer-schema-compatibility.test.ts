@@ -8,7 +8,7 @@ import {
 import { convertAltiumToCircuitJson } from "../../lib"
 import { readReferenceBytes } from "../helpers/read-reference"
 
-test.failing("normalizes existing DRV8307EVM via tenting for the renderer schema", async () => {
+test("normalizes existing DRV8307EVM via tenting for the renderer schema", async () => {
   const source = await readReferenceBytes("ti-drv8307evm.PcbDoc")
   const document = parseAltiumFile(source).document
   if (
