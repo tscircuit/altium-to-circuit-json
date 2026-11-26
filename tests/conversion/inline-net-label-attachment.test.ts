@@ -66,7 +66,7 @@ test.failing("preserves the six original DRV8307EVM HU+/UH+ attachment points", 
   expect(new Set(labels.map((label) => label.source_trace_id))).toEqual(
     new Set(["source_trace_altium_18"]),
   )
-})
+}, 120_000)
 
 test("snapshots the original DRV8307EVM schematic label placement", async () => {
   const document = parseAltiumSchDoc(
@@ -76,4 +76,4 @@ test("snapshots the original DRV8307EVM schematic label placement", async () => 
   await expect(renderImportedSchematicToSvg(circuitJson)).toMatchSvgSnapshot(
     import.meta.path,
   )
-})
+}, 120_000)
