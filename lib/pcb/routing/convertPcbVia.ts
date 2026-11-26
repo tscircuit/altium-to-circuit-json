@@ -1,5 +1,5 @@
 import type { AltiumViaRecord } from "altiumts"
-import type { PcbVia } from "circuit-json"
+import { type PcbVia, pcb_via } from "circuit-json"
 import { milsToMillimeters, toMillimeterPoint } from "../geometry"
 import type { PcbCopperLayerMap } from "../layers"
 import type { PcbNetContext } from "../model"
@@ -27,7 +27,7 @@ export function convertPcbVia({
   const outerDiameter = milsToMillimeters(record.diameterMils ?? 20)
   const sourceNetId = netContext.getSourceNetId(record)
   const sourceTraceId = netContext.getSourceTraceId(record)
-  return {
+  return pcb_via.parse({
     type: "pcb_via",
     pcb_via_id: `pcb_via_altium_${recordIndex}`,
     ...(sourceNetId ? { source_net_id: sourceNetId } : {}),
@@ -39,5 +39,5 @@ export function convertPcbVia({
     ),
     layers,
     is_tented: record.tentedTop === true && record.tentedBottom === true,
-  }
+  })
 }
