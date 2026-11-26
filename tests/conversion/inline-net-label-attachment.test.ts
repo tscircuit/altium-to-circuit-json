@@ -5,7 +5,7 @@ import { convertAltiumSchDocToCircuitJson } from "../../lib"
 import { readReferenceBytes } from "../helpers/read-reference"
 import { renderImportedSchematicToSvg } from "../helpers/render-imported-schematic"
 
-test.failing.each([0, 1, 2, 3])(
+test.each([0, 1, 2, 3])(
   "preserves an interior label attachment at orientation %i",
   (orientation) => {
     const vertical = orientation % 2 === 1
@@ -33,7 +33,7 @@ test.failing.each([0, 1, 2, 3])(
   },
 )
 
-test.failing("preserves the six original DRV8307EVM HU+/UH+ attachment points", async () => {
+test("preserves the six original DRV8307EVM HU+/UH+ attachment points", async () => {
   const document = parseAltiumSchDoc(
     await readReferenceBytes("ti-drv8307evm.SchDoc"),
   )
